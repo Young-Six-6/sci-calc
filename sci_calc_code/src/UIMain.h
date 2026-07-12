@@ -10,6 +10,7 @@
 #include "./Calculator/ExpressionBlock.h"
 #include "./Calculator/Calculator.h"
 #include "./Calculator/CalculatorRPN.h"
+#include "./Calculator/EquationSolver.h"
 #include "./Utils/Macropad.h"
 #include "./Macropad/MacropadUI.h"
 #include "./Utils/Keyboard.h"

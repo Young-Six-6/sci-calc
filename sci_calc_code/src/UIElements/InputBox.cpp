@@ -144,6 +144,10 @@ void InputBox::draw() {
     this -> cursor.setY(this -> y);
 }
 
+void InputBox::drawCursor() {
+    this -> cursor.draw();
+}
+
 
 void InputBox::update() {
     //Serial.printf("this cursor: %d, %d\n", this -> cursor.getTargetX(), this -> cursor.getTargetY());

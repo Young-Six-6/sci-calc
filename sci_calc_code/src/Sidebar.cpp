@@ -5,11 +5,14 @@ std::string batterylevel;
 
 void drawSidebar() {
     if (HIDE_SIDEBAR == false) {
-    u8g2.drawRFrame(213, 0, 43, 64, 2);
-    if (millis() - curtime > 500) {
-        batterylevel = numToStr(analogRead(36) / 4095.0 * 2 * 3.3).substr(0, 3);
-        curtime = millis();
-    }
-    u8g2.drawStr(215, 10, ("bat:" + batterylevel + "V").c_str());
+        u8g2.drawRFrame(213, 0, 43, 64, 2);
+        if (batterylevel.empty() || millis() - curtime > 500) {
+            batterylevel = numToStr(analogRead(36) / 4095.0 * 2 * 3.3).substr(0, 3);
+            curtime = millis();
+        }
+
+        u8g2.drawFrame(216, 4, 8, 7);
+        u8g2.drawBox(224, 6, 2, 3);
+        u8g2.drawStr(228, 10, (batterylevel + "V").c_str());
     }
 }

@@ -38,6 +38,7 @@ class InputBox : public UIElement {
         std::string enter();
 
         void draw();
+        void drawCursor();
 
 
         void update();

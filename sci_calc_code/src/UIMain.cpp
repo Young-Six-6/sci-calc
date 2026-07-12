@@ -118,8 +118,10 @@ Menu menuSettings(0, -70, 0, 0, 210, 64, 5, {
 
 Calculator calcMain(0, 0, 210, 64, &calcMenu, &expressionInput);
 CalculatorRPN calcRPN(0, 0, 210, 64);
+EquationSolver equationSolver(0, 0, 210, 64);
 
 Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
+    new Text("Graph Calc"),
     new Text("Chess"),
     new Text("Spacetrash"),
     new Text("Snake"),
@@ -129,6 +131,7 @@ Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
     new Text("Wifi Rickroll")
 },
 {
+    new BinLink("/graphcalc.bin"),
     new BinLink("/chess.bin"),
     new BinLink("/spacetrash.bin"),
     new BinLink("/snake.bin"),
@@ -145,6 +148,7 @@ StopwatchUI stopwatchUI(0, 0, 210, 64, &stopwatchMenu);
 
 Menu mainMenu(-100, 0, 0, 0, 70, 64, 4, {
     new Text("Calculator"),
+    new Text("Equation"),
     new Text("RPN Calc"),
     new Text("Macropad"), 
     new Text("Programs"), 
@@ -153,6 +157,7 @@ Menu mainMenu(-100, 0, 0, 0, 70, 64, 4, {
 },
 {
     &calcMain, 
+    &equationSolver,
     &calcRPN,
     &macropadUI, 
     &programMenu, 

@@ -41,11 +41,22 @@ v1.1
 v1.2
 Fixed Macropad bug where in some layers row 0 and 1 were swapped.
 
+v1.3
+Added a one-variable equation solver with Shift-based x and equals input.
+
+v1.4
+Fixed the battery sidebar layout and added multiple-root equation results.
+
+v1.5
+Added a standalone graphing calculator program.
+
+v1.6
+Added multi-function graphing and optional axis labels.
 
 
 */
 
-const std::string VERSION = "1.2";
+const std::string VERSION = "1.6";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

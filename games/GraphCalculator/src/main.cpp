@@ -1,0 +1,664 @@
+#include <Arduino.h>
+#include <FS.h>
+#include <SD.h>
+#include <SPI.h>
+#include <Update.h>
+#include <U8g2lib.h>
+
+#include <algorithm>
+#include <cmath>
+
+#include "Keyboard.h"
+#include "Parser.h"
+
+namespace {
+constexpr uint8_t OLED_CS = 5;
+constexpr uint8_t OLED_DC = 16;
+constexpr uint8_t OLED_RST = 17;
+constexpr uint8_t SD_CS = 4;
+constexpr uint16_t SCREEN_W = 256;
+constexpr uint8_t SCREEN_H = 64;
+constexpr uint8_t MAX_EXPRESSION = 96;
+constexpr uint8_t MAX_FUNCTIONS = 4;
+constexpr uint32_t EXIT_HOLD_MS = 1000;
+
+U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI display(U8G2_R0, OLED_CS, OLED_DC, OLED_RST);
+Keyboard keyboard;
+
+struct FunctionSlot {
+    String expression;
+    uint8_t cursor = 0;
+    Parser parser;
+    ParseError error;
+    bool valid = false;
+};
+
+FunctionSlot functions[MAX_FUNCTIONS];
+uint8_t functionCount = 1;
+uint8_t activeFunction = 0;
+
+enum class Page : uint8_t { Editor, Graph };
+Page page = Page::Editor;
+bool degrees = false;
+bool gridEnabled = true;
+bool labelsEnabled = true;
+bool traceEnabled = false;
+bool sdReady = false;
+bool exitTriggered = false;
+
+double centerX = 0.0;
+double centerY = 0.0;
+double pixelsPerUnit = 20.0;
+double traceX = 0.0;
+
+String notice;
+uint32_t noticeUntil = 0;
+uint32_t lastFrame = 0;
+bool dirty = true;
+
+FunctionSlot &currentFunction() {
+    return functions[activeFunction];
+}
+
+void setNotice(const String &text, uint32_t duration = 1800) {
+    notice = text;
+    noticeUntil = millis() + duration;
+    dirty = true;
+}
+
+bool noticeActive() {
+    return notice.length() && static_cast<int32_t>(noticeUntil - millis()) > 0;
+}
+
+void resetView() {
+    centerX = 0.0;
+    centerY = 0.0;
+    pixelsPerUnit = 20.0;
+    traceX = 0.0;
+    dirty = true;
+}
+
+String shortNumber(double value) {
+    char buffer[20];
+    if (fabs(value) < 5e-10) value = 0.0;
+    snprintf(buffer, sizeof(buffer), "%.5g", value);
+    return String(buffer);
+}
+
+bool parserSelfTest() {
+    Parser testParser;
+    ParseError error;
+    double value = 0.0;
+    if (!testParser.compile("2x", error) || !testParser.evaluate(3.0, false, value) || fabs(value - 6.0) > 1e-9) return false;
+    if (!testParser.compile("2(x+1)", error) || !testParser.evaluate(2.0, false, value) || fabs(value - 6.0) > 1e-9) return false;
+    if (!testParser.compile("(x+1)(x-1)", error) || !testParser.evaluate(3.0, false, value) || fabs(value - 8.0) > 1e-9) return false;
+    if (!testParser.compile("sin(pi/2)", error) || !testParser.evaluate(0.0, false, value) || fabs(value - 1.0) > 1e-9) return false;
+    if (testParser.compile("1.2.3", error)) return false;
+    return true;
+}
+
+void insertText(const String &text) {
+    FunctionSlot &slot = currentFunction();
+    if (slot.expression.length() + text.length() > MAX_EXPRESSION) {
+        setNotice("Input limit: 96 chars");
+        return;
+    }
+    slot.expression = slot.expression.substring(0, slot.cursor) + text + slot.expression.substring(slot.cursor);
+    slot.cursor += text.length();
+    slot.valid = false;
+    slot.error = ParseError();
+    dirty = true;
+}
+
+void eraseLeft() {
+    FunctionSlot &slot = currentFunction();
+    if (slot.cursor == 0) return;
+    slot.expression.remove(slot.cursor - 1, 1);
+    --slot.cursor;
+    slot.valid = false;
+    slot.error = ParseError();
+    dirty = true;
+}
+
+void selectFunction(int direction) {
+    activeFunction = (activeFunction + functionCount + direction) % functionCount;
+    setNotice("Editing F" + String(activeFunction + 1), 900);
+}
+
+void selectGraphFunction(int direction) {
+    for (uint8_t offset = 1; offset <= functionCount; ++offset) {
+        const int candidate = (activeFunction + functionCount + direction * offset) % functionCount;
+        if (functions[candidate].valid) {
+            activeFunction = candidate;
+            setNotice("Trace F" + String(activeFunction + 1), 700);
+            return;
+        }
+    }
+}
+
+void addFunction() {
+    if (functionCount >= MAX_FUNCTIONS) {
+        setNotice("Maximum: 4 functions");
+        return;
+    }
+    activeFunction = functionCount++;
+    functions[activeFunction].expression = "";
+    functions[activeFunction].cursor = 0;
+    functions[activeFunction].valid = false;
+    functions[activeFunction].error = ParseError();
+    setNotice("Added F" + String(activeFunction + 1), 900);
+}
+
+void deleteFunction() {
+    if (functionCount == 1) {
+        functions[0].expression = "";
+        functions[0].cursor = 0;
+        functions[0].valid = false;
+        functions[0].error = ParseError();
+        setNotice("F1 cleared", 900);
+        return;
+    }
+
+    for (uint8_t i = activeFunction; i + 1 < functionCount; ++i) {
+        functions[i].expression = functions[i + 1].expression;
+        functions[i].cursor = functions[i + 1].cursor;
+        functions[i].valid = false;
+        functions[i].error = ParseError();
+    }
+    --functionCount;
+    functions[functionCount].expression = "";
+    functions[functionCount].cursor = 0;
+    functions[functionCount].valid = false;
+    functions[functionCount].error = ParseError();
+    if (activeFunction >= functionCount) activeFunction = functionCount - 1;
+    setNotice("Function deleted", 900);
+}
+
+bool compileFunctions() {
+    bool hasFunction = false;
+    for (uint8_t i = 0; i < functionCount; ++i) {
+        FunctionSlot &slot = functions[i];
+        slot.error = ParseError();
+        if (slot.expression.length() == 0) {
+            slot.valid = false;
+            continue;
+        }
+        hasFunction = true;
+        slot.valid = slot.parser.compile(slot.expression, slot.error);
+        if (!slot.valid) {
+            activeFunction = i;
+            setNotice("Syntax error in F" + String(i + 1));
+            return false;
+        }
+    }
+    dirty = true;
+    if (!hasFunction) {
+        setNotice("Enter at least one function");
+        return false;
+    }
+    return true;
+}
+
+void enterGraph() {
+    if (!compileFunctions()) return;
+    page = Page::Graph;
+    traceEnabled = false;
+    dirty = true;
+}
+
+bool installMainFirmware() {
+    display.clearBuffer();
+    display.setFont(u8g2_font_6x10_tf);
+    display.drawStr(4, 12, "Returning to main firmware...");
+    display.drawFrame(4, 25, 248, 10);
+    display.sendBuffer();
+
+    if (!sdReady) {
+        setNotice("SD card unavailable", 2500);
+        return false;
+    }
+    File firmware = SD.open("/main.bin", FILE_READ);
+    if (!firmware || firmware.isDirectory() || firmware.size() == 0) {
+        if (firmware) firmware.close();
+        setNotice("Missing /main.bin", 2500);
+        return false;
+    }
+
+    const size_t size = firmware.size();
+    if (!Update.begin(size, U_FLASH)) {
+        firmware.close();
+        setNotice(String("Update begin failed: ") + Update.getError(), 3000);
+        return false;
+    }
+
+    size_t written = 0;
+    uint8_t lastPercent = 255;
+    uint8_t buffer[1024];
+    while (firmware.available()) {
+        const size_t count = firmware.read(buffer, sizeof(buffer));
+        if (!count || Update.write(buffer, count) != count) break;
+        written += count;
+        const uint8_t percent = static_cast<uint8_t>((written * 100ULL) / size);
+        if (percent != lastPercent) {
+            lastPercent = percent;
+            display.setDrawColor(0);
+            display.drawBox(5, 26, 246, 8);
+            display.setDrawColor(1);
+            display.drawBox(5, 26, (percent * 246) / 100, 8);
+            display.sendBuffer();
+        }
+    }
+    firmware.close();
+
+    if (written != size || !Update.end(true) || !Update.isFinished()) {
+        Update.abort();
+        setNotice(String("Update failed: ") + Update.getError(), 3000);
+        return false;
+    }
+    display.clearBuffer();
+    display.drawStr(67, 34, "Main firmware restored");
+    display.sendBuffer();
+    delay(250);
+    ESP.restart();
+    return true;
+}
+
+void drawDottedVertical(int x) {
+    if (x < 0 || x >= SCREEN_W) return;
+    for (int y = 0; y < SCREEN_H; y += 3) display.drawPixel(x, y);
+}
+
+void drawDottedHorizontal(int y) {
+    if (y < 0 || y >= SCREEN_H) return;
+    for (int x = 0; x < SCREEN_W; x += 3) display.drawPixel(x, y);
+}
+
+double niceGridStep() {
+    const double raw = 18.0 / pixelsPerUnit;
+    const double power = pow(10.0, floor(log10(raw)));
+    const double scaled = raw / power;
+    const double nice = scaled <= 1.0 ? 1.0 : (scaled <= 2.0 ? 2.0 : (scaled <= 5.0 ? 5.0 : 10.0));
+    return nice * power;
+}
+
+void drawGridAndAxes() {
+    const double minX = centerX - SCREEN_W * 0.5 / pixelsPerUnit;
+    const double maxX = centerX + SCREEN_W * 0.5 / pixelsPerUnit;
+    const double minY = centerY - SCREEN_H * 0.5 / pixelsPerUnit;
+    const double maxY = centerY + SCREEN_H * 0.5 / pixelsPerUnit;
+    const double step = niceGridStep();
+
+    if (gridEnabled) {
+        double firstX = ceil(minX / step) * step;
+        for (double x = firstX; x <= maxX + step * 0.1; x += step) {
+            int px = lround(SCREEN_W * 0.5 + (x - centerX) * pixelsPerUnit);
+            drawDottedVertical(px);
+        }
+        double firstY = ceil(minY / step) * step;
+        for (double y = firstY; y <= maxY + step * 0.1; y += step) {
+            int py = lround(SCREEN_H * 0.5 - (y - centerY) * pixelsPerUnit);
+            drawDottedHorizontal(py);
+        }
+    }
+
+    const int axisX = lround(SCREEN_W * 0.5 - centerX * pixelsPerUnit);
+    const int axisY = lround(SCREEN_H * 0.5 + centerY * pixelsPerUnit);
+    if (axisX >= 0 && axisX < SCREEN_W) display.drawVLine(axisX, 0, SCREEN_H);
+    if (axisY >= 0 && axisY < SCREEN_H) display.drawHLine(0, axisY, SCREEN_W);
+
+    if (axisY >= 0 && axisY < SCREEN_H) {
+        for (double x = ceil(minX / step) * step; x <= maxX; x += step) {
+            int px = lround(SCREEN_W * 0.5 + (x - centerX) * pixelsPerUnit);
+            if (px >= 0 && px < SCREEN_W) display.drawVLine(px, max(0, axisY - 2), min(5, SCREEN_H - max(0, axisY - 2)));
+        }
+    }
+    if (axisX >= 0 && axisX < SCREEN_W) {
+        for (double y = ceil(minY / step) * step; y <= maxY; y += step) {
+            int py = lround(SCREEN_H * 0.5 - (y - centerY) * pixelsPerUnit);
+            if (py >= 0 && py < SCREEN_H) display.drawHLine(max(0, axisX - 2), py, min(5, SCREEN_W - max(0, axisX - 2)));
+        }
+    }
+}
+
+void drawSmallLabel(const String &text, int center, int baseline) {
+    const int width = display.getStrWidth(text.c_str());
+    int x = constrain(center - width / 2, 0, SCREEN_W - width);
+    int y = constrain(baseline, 6, SCREEN_H - 1);
+    display.setDrawColor(0);
+    display.drawBox(max(0, x - 1), y - 6, min(width + 2, SCREEN_W - max(0, x - 1)), 7);
+    display.setDrawColor(1);
+    display.drawStr(x, y, text.c_str());
+}
+
+void drawAxisLabels() {
+    if (!labelsEnabled) return;
+
+    const double minX = centerX - SCREEN_W * 0.5 / pixelsPerUnit;
+    const double maxX = centerX + SCREEN_W * 0.5 / pixelsPerUnit;
+    const double minY = centerY - SCREEN_H * 0.5 / pixelsPerUnit;
+    const double maxY = centerY + SCREEN_H * 0.5 / pixelsPerUnit;
+    const double step = niceGridStep();
+    const int axisX = lround(SCREEN_W * 0.5 - centerX * pixelsPerUnit);
+    const int axisY = lround(SCREEN_H * 0.5 + centerY * pixelsPerUnit);
+
+    display.setFont(u8g2_font_4x6_tf);
+    if (axisY >= 0 && axisY < SCREEN_H) {
+        const int baseline = axisY < 9 ? axisY + 7 : axisY - 2;
+        int tickIndex = 0;
+        for (double x = ceil(minX / step) * step; x <= maxX + step * 0.1; x += step, ++tickIndex) {
+            if (fabs(x) < step * 0.05 || tickIndex % 2 != 0) continue;
+            const int px = lround(SCREEN_W * 0.5 + (x - centerX) * pixelsPerUnit);
+            if (px >= 8 && px < SCREEN_W - 8) drawSmallLabel(shortNumber(x), px, baseline);
+        }
+    }
+    if (axisX >= 0 && axisX < SCREEN_W) {
+        const bool placeRight = axisX < SCREEN_W - 24;
+        for (double y = ceil(minY / step) * step; y <= maxY + step * 0.1; y += step) {
+            if (fabs(y) < step * 0.05) continue;
+            const int py = lround(SCREEN_H * 0.5 - (y - centerY) * pixelsPerUnit);
+            if (py < 7 || py >= SCREEN_H - 1) continue;
+            String label = shortNumber(y);
+            const int labelWidth = display.getStrWidth(label.c_str());
+            const int center = placeRight ? axisX + 3 + labelWidth / 2 : axisX - 3 - labelWidth / 2;
+            drawSmallLabel(label, center, py + 2);
+        }
+    }
+    if (axisX >= 0 && axisX < SCREEN_W && axisY >= 0 && axisY < SCREEN_H) {
+        drawSmallLabel("0", axisX + 5, axisY < 9 ? axisY + 7 : axisY - 2);
+    }
+}
+
+bool styleVisible(uint8_t style, int x) {
+    if (style == 0) return true;
+    if (style == 1) return x % 4 < 2;
+    if (style == 2) return x % 7 < 4;
+    return x % 9 < 5 || x % 9 == 7;
+}
+
+void drawCurve(const FunctionSlot &slot, uint8_t style) {
+    bool previousValid = false;
+    double previousY = 0.0;
+    int previousPy = 0;
+    for (int px = 0; px < SCREEN_W; ++px) {
+        const double x = centerX + (px - SCREEN_W * 0.5) / pixelsPerUnit;
+        double y = 0.0;
+        const bool valid = slot.parser.evaluate(x, degrees, y);
+        const double screenY = SCREEN_H * 0.5 - (y - centerY) * pixelsPerUnit;
+        const bool visible = valid && screenY >= 0.0 && screenY < SCREEN_H;
+        const int py = visible ? lround(screenY) : 0;
+
+        if (visible && styleVisible(style, px)) display.drawPixel(px, py);
+        if (visible && previousValid && styleVisible(style, px) && abs(py - previousPy) <= 32) {
+            const double midX = centerX + (px - 0.5 - SCREEN_W * 0.5) / pixelsPerUnit;
+            double midY = 0.0;
+            const bool midValid = slot.parser.evaluate(midX, degrees, midY);
+            const double expected = (previousY + y) * 0.5;
+            if (midValid && fabs(midY - expected) * pixelsPerUnit < 12.0) {
+                display.drawLine(px - 1, previousPy, px, py);
+            }
+        }
+        previousValid = visible;
+        previousY = y;
+        previousPy = py;
+    }
+}
+
+void drawTrace() {
+    if (!traceEnabled) return;
+    const int px = lround(SCREEN_W * 0.5 + (traceX - centerX) * pixelsPerUnit);
+    if (px >= 0 && px < SCREEN_W) drawDottedVertical(px);
+    double y = 0.0;
+    const FunctionSlot &slot = currentFunction();
+    if (!slot.valid || !slot.parser.evaluate(traceX, degrees, y)) return;
+    const int py = lround(SCREEN_H * 0.5 - (y - centerY) * pixelsPerUnit);
+    if (px >= 2 && px < SCREEN_W - 2 && py >= 2 && py < SCREEN_H - 2) {
+        display.drawCircle(px, py, 2);
+        display.drawPixel(px, py);
+    }
+}
+
+void drawGraphStatus() {
+    display.setFont(u8g2_font_5x7_tf);
+    String status = "2/2 F" + String(activeFunction + 1) + " " + (degrees ? "DEG" : "RAD");
+    status += gridEnabled ? " G" : " -";
+    status += labelsEnabled ? "L" : "-";
+    status += " Z" + shortNumber(pixelsPerUnit / 20.0);
+    const int width = display.getStrWidth(status.c_str()) + 4;
+    display.setDrawColor(0);
+    display.drawBox(SCREEN_W - width, 0, width, 9);
+    display.setDrawColor(1);
+    display.drawStr(SCREEN_W - width + 2, 7, status.c_str());
+
+    if (traceEnabled) {
+        double y = 0.0;
+        const FunctionSlot &slot = currentFunction();
+        const bool valid = slot.valid && slot.parser.evaluate(traceX, degrees, y);
+        String trace = "F" + String(activeFunction + 1) + " x=" + shortNumber(traceX) + " y=" + (valid ? shortNumber(y) : String("undef"));
+        int traceWidth = std::min<int>(SCREEN_W, display.getStrWidth(trace.c_str()) + 4);
+        display.setDrawColor(0);
+        display.drawBox(0, SCREEN_H - 9, traceWidth, 9);
+        display.setDrawColor(1);
+        display.drawStr(2, SCREEN_H - 2, trace.c_str());
+    }
+}
+
+void drawGraph() {
+    display.clearBuffer();
+    drawGridAndAxes();
+    for (uint8_t i = 0; i < functionCount; ++i) {
+        if (functions[i].valid) drawCurve(functions[i], i);
+    }
+    drawAxisLabels();
+    drawTrace();
+    drawGraphStatus();
+    if (noticeActive()) {
+        display.setFont(u8g2_font_5x7_tf);
+        const int width = std::min<int>(SCREEN_W, display.getStrWidth(notice.c_str()) + 6);
+        display.setDrawColor(0);
+        display.drawBox(0, 0, width, 9);
+        display.setDrawColor(1);
+        display.drawStr(3, 7, notice.c_str());
+    }
+    display.sendBuffer();
+}
+
+void drawEditor() {
+    FunctionSlot &slot = currentFunction();
+    display.clearBuffer();
+    display.setFont(u8g2_font_5x7_tf);
+    String header = "EDIT 1/2  F" + String(activeFunction + 1) + "/" + String(functionCount) + "  " + (degrees ? "DEG" : "RAD");
+    display.drawStr(2, 7, header.c_str());
+    String count = String(slot.expression.length()) + "/" + MAX_EXPRESSION;
+    display.drawStr(SCREEN_W - display.getStrWidth(count.c_str()) - 2, 7, count.c_str());
+
+    display.setFont(u8g2_font_6x10_tf);
+    display.drawStr(2, 31, "f(x)=");
+    constexpr int expressionX = 34;
+    constexpr int charWidth = 6;
+    constexpr int visibleChars = (SCREEN_W - expressionX - 2) / charWidth;
+    int start = 0;
+    if (slot.cursor >= visibleChars) start = slot.cursor - visibleChars + 1;
+    if (start > slot.expression.length()) start = slot.expression.length();
+    String visible = slot.expression.substring(start, std::min<int>(slot.expression.length(), start + visibleChars));
+    display.drawStr(expressionX, 31, visible.c_str());
+    int cursorX = expressionX + (slot.cursor - start) * charWidth;
+    display.drawHLine(cursorX, 33, 5);
+
+    if (slot.error.position >= start && slot.error.position <= start + visibleChars) {
+        int errorX = expressionX + (slot.error.position - start) * charWidth;
+        display.drawVLine(errorX, 35, 3);
+    }
+
+    display.setFont(u8g2_font_5x7_tf);
+    String footer;
+    if (noticeActive()) footer = notice;
+    else if (slot.error.position >= 0) {
+        footer = "F" + String(activeFunction + 1) + " ERR @" + String(slot.error.position + 1) + ": " + slot.error.message;
+    } else {
+        footer = "TAB graph  RPN next  S+RPN add";
+    }
+    if (display.getStrWidth(footer.c_str()) > SCREEN_W - 4) {
+        while (footer.length() && display.getStrWidth(footer.c_str()) > SCREEN_W - 12) footer.remove(footer.length() - 1);
+        footer += "...";
+    }
+    display.drawStr(2, 62, footer.c_str());
+    display.sendBuffer();
+}
+
+void insertFunction(const char *name) {
+    insertText(String(name) + "(");
+}
+
+char digitFor(KeyCode key) {
+    switch (key) {
+        case KeyCode::K0: return '0'; case KeyCode::K1: return '1';
+        case KeyCode::K2: return '2'; case KeyCode::K3: return '3';
+        case KeyCode::K4: return '4'; case KeyCode::K5: return '5';
+        case KeyCode::K6: return '6'; case KeyCode::K7: return '7';
+        case KeyCode::K8: return '8'; case KeyCode::K9: return '9';
+        default: return '\0';
+    }
+}
+
+void handleEditorKey(const KeyEvent &event) {
+    if (event.action == KeyAction::Release) return;
+    const bool shift = keyboard.isDown(KeyCode::Shift);
+    const bool cursorRepeat = shift && (event.key == KeyCode::K4 || event.key == KeyCode::K6);
+    if (event.action == KeyAction::Repeat && event.key != KeyCode::Backspace && !cursorRepeat) return;
+
+    if (event.key == KeyCode::Backspace) {
+        if (shift && event.action == KeyAction::Press) deleteFunction();
+        else eraseLeft();
+        return;
+    }
+    if (event.action != KeyAction::Press) return;
+    if (event.key == KeyCode::Tab || event.key == KeyCode::Enter) { enterGraph(); return; }
+    if (event.key == KeyCode::Angle) { degrees = !degrees; dirty = true; return; }
+    if (event.key == KeyCode::Shift || event.key == KeyCode::Escape) return;
+
+    if (shift) {
+        FunctionSlot &slot = currentFunction();
+        if (event.key == KeyCode::K4) { if (slot.cursor > 0) --slot.cursor; dirty = true; return; }
+        if (event.key == KeyCode::K6) { if (slot.cursor < slot.expression.length()) ++slot.cursor; dirty = true; return; }
+        if (event.key == KeyCode::K8) { selectFunction(-1); return; }
+        if (event.key == KeyCode::K2) { selectFunction(1); return; }
+        if (event.key == KeyCode::K5) { insertText("x"); return; }
+        if (event.key == KeyCode::Divide) { insertText("("); return; }
+        if (event.key == KeyCode::Multiply) { insertText(")"); return; }
+        if (event.key == KeyCode::Power) { insertFunction("sqrt"); return; }
+        if (event.key == KeyCode::Sec) { insertFunction("abs"); return; }
+        if (event.key == KeyCode::Csc) { insertFunction("log"); return; }
+        if (event.key == KeyCode::Cot) { insertText("pi"); return; }
+        if (event.key == KeyCode::K9) { insertText("e"); return; }
+        if (event.key == KeyCode::Extra) { addFunction(); return; }
+    }
+
+    switch (event.key) {
+        case KeyCode::Sin: insertFunction(shift ? "asin" : "sin"); return;
+        case KeyCode::Cos: insertFunction(shift ? "acos" : "cos"); return;
+        case KeyCode::Tan: insertFunction(shift ? "atan" : "tan"); return;
+        case KeyCode::Sec: insertFunction("sec"); return;
+        case KeyCode::Csc: insertFunction("csc"); return;
+        case KeyCode::Cot: insertFunction("cot"); return;
+        case KeyCode::Exp: insertFunction(shift ? "ln" : "exp"); return;
+        case KeyCode::Extra: selectFunction(1); return;
+        case KeyCode::Plus: insertText("+"); return;
+        case KeyCode::Minus: insertText("-"); return;
+        case KeyCode::Multiply: insertText("*"); return;
+        case KeyCode::Divide: insertText("/"); return;
+        case KeyCode::Power: insertText("^"); return;
+        case KeyCode::Dot: insertText("."); return;
+        default: break;
+    }
+    if (!shift) {
+        const char digit = digitFor(event.key);
+        if (digit) insertText(String(digit));
+    }
+}
+
+void handleGraphKey(const KeyEvent &event) {
+    if (event.action == KeyAction::Release) return;
+    const bool shift = keyboard.isDown(KeyCode::Shift);
+    const bool movementKey = event.key == KeyCode::K4 || event.key == KeyCode::K6 ||
+                             event.key == KeyCode::K8 || event.key == KeyCode::K2;
+    const bool repeatable = movementKey || event.key == KeyCode::Plus || event.key == KeyCode::Minus;
+    if (event.action == KeyAction::Repeat && !repeatable) return;
+    if (event.action == KeyAction::Repeat && movementKey && !shift && !traceEnabled) return;
+    if (event.action == KeyAction::Press && event.key == KeyCode::Tab) { page = Page::Editor; dirty = true; return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::Enter) { traceEnabled = !traceEnabled; traceX = centerX; dirty = true; return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::Dot) { gridEnabled = !gridEnabled; dirty = true; return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::Angle) { degrees = !degrees; dirty = true; return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::Extra) { labelsEnabled = !labelsEnabled; dirty = true; return; }
+    if (event.action == KeyAction::Press && !shift && event.key == KeyCode::K8) { selectGraphFunction(-1); return; }
+    if (event.action == KeyAction::Press && !shift && event.key == KeyCode::K2) { selectGraphFunction(1); return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::K5 && !shift) { resetView(); return; }
+    if (event.key == KeyCode::Plus) { pixelsPerUnit = min(160.0, pixelsPerUnit * 1.25); dirty = true; return; }
+    if (event.key == KeyCode::Minus) { pixelsPerUnit = max(2.0, pixelsPerUnit / 1.25); dirty = true; return; }
+
+    if (shift) {
+        if (event.key == KeyCode::K4) centerX -= 32.0 / pixelsPerUnit;
+        else if (event.key == KeyCode::K6) centerX += 32.0 / pixelsPerUnit;
+        else if (event.key == KeyCode::K8) centerY += 12.0 / pixelsPerUnit;
+        else if (event.key == KeyCode::K2) centerY -= 12.0 / pixelsPerUnit;
+        else return;
+        dirty = true;
+        return;
+    }
+    if (traceEnabled && (event.key == KeyCode::K4 || event.key == KeyCode::K6)) {
+        traceX += (event.key == KeyCode::K4 ? -1.0 : 1.0) / pixelsPerUnit;
+        dirty = true;
+    }
+}
+
+void drawCurrentPage() {
+    if (page == Page::Editor) drawEditor();
+    else drawGraph();
+    dirty = false;
+}
+}
+
+void setup() {
+    Serial.begin(115200);
+    pinMode(OLED_CS, OUTPUT);
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(OLED_CS, HIGH);
+    digitalWrite(SD_CS, HIGH);
+    SPI.begin(18, 19, 23);
+    display.begin();
+    display.setContrast(220);
+    keyboard.begin();
+    sdReady = SD.begin(SD_CS, SPI);
+    if (!sdReady) setNotice("SD unavailable; graphing works", 2600);
+    if (!parserSelfTest()) setNotice("Parser self-test failed", 5000);
+    drawCurrentPage();
+}
+
+void loop() {
+    keyboard.update();
+
+    if (keyboard.isDown(KeyCode::Escape) && keyboard.heldMs(KeyCode::Escape) >= EXIT_HOLD_MS) {
+        if (!exitTriggered) {
+            exitTriggered = true;
+            installMainFirmware();
+        }
+    } else if (!keyboard.isDown(KeyCode::Escape)) {
+        exitTriggered = false;
+    }
+
+    KeyEvent event;
+    while (keyboard.nextEvent(event)) {
+        if (event.key == KeyCode::Escape) continue;
+        if (page == Page::Editor) handleEditorKey(event);
+        else handleGraphKey(event);
+    }
+
+    if (notice.length() && !noticeActive()) {
+        notice = "";
+        dirty = true;
+    }
+    if ((dirty || page == Page::Graph) && millis() - lastFrame >= 33) {
+        lastFrame = millis();
+        drawCurrentPage();
+    }
+    delay(1);
+}
