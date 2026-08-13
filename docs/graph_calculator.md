@@ -62,3 +62,20 @@ large discontinuities. F1 uses a solid line; F2 uses a dotted line; F3 and F4
 use different dash patterns. The upper-right status identifies the selected
 trace function and whether the grid and labels are enabled. Axis labels use a
 small font and automatically follow pan and zoom.
+
+## Rendering Quality And Speed
+
+The graph page caches its grid, axes, labels, and curves. It rebuilds that base
+image only when a function, angle mode, pan, zoom, grid, or label setting changes.
+Moving the trace cursor and leaving the graph idle therefore avoid full function
+re-evaluation.
+
+Each function is sampled at integer, half-pixel, and alternating subpixel
+positions. Curved, rapidly changing, turning, or partly undefined intervals are
+subdivided adaptively, down to roughly 1/32 horizontal pixel when needed. A line
+is drawn only when all intermediate samples are valid and sufficiently close to
+the local curve, reducing false connections across vertical asymptotes.
+
+A graph rebuild is capped at 4096 function evaluations and each function is capped
+at 1536. With four functions, the available work is divided fairly, so a difficult
+first curve cannot consume the complete rendering budget.

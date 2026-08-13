@@ -57,6 +57,26 @@ Up to four non-empty functions are drawn together. F1 is solid; F2 is dotted;
 F3 and F4 use different dash patterns. Empty slots are ignored. A syntax error
 returns to the corresponding function slot so it can be corrected.
 
+## Rendering performance and precision
+
+- The graph base layer (grid, axes, labels, and all curves) is cached. It is
+  recalculated only after an expression, angle mode, viewport, zoom, grid, or
+  label setting changes. Idle time and trace-only movement reuse the cache.
+- Every function gets a deterministic 766-sample baseline: each pixel interval
+  has its endpoint, half-pixel sample, and an alternating 3/8 or 5/8 subpixel
+  probe. The staggered probe reduces aliasing in fast oscillations that happen
+  to match the integer pixel columns.
+- Curved, turning, partially undefined, or rapidly changing intervals receive
+  adaptive subdivision. Refinement can reach about 1/32 pixel horizontally in
+  the most difficult local regions.
+- Evaluation work is bounded at 4096 samples for a complete graph rebuild and
+  1536 samples per function. With four functions, each receives a fair baseline
+  and adaptive allowance; extra work is distributed across the screen instead
+  of being consumed by the first difficult interval.
+- A segment is connected only when its subpixel samples remain valid and agree
+  with a local linearity check. Undefined or suspiciously nonlinear intervals
+  are left disconnected, preventing lines across vertical asymptotes.
+
 Expressions support `+ - * / ^`, unary signs, parentheses, decimal numbers, `x`,
 `pi`, `e`, implicit multiplication, and these functions: `sin`, `cos`, `tan`,
 `sec`, `csc`, `cot`, `asin`, `acos`, `atan`, `sqrt`, `ln`, `log`, `exp`, `abs`.

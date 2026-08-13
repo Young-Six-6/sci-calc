@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 #include "Keyboard.h"
 #include "Parser.h"
@@ -21,6 +22,16 @@ constexpr uint8_t SCREEN_H = 64;
 constexpr uint8_t MAX_EXPRESSION = 96;
 constexpr uint8_t MAX_FUNCTIONS = 4;
 constexpr uint32_t EXIT_HOLD_MS = 1000;
+constexpr uint16_t MIN_FRAME_INTERVAL_MS = 16;
+constexpr uint16_t GRAPH_CACHE_BYTES = SCREEN_W * SCREEN_H / 8;
+constexpr uint16_t MAX_FRAME_EVALUATIONS = 4096;
+constexpr uint16_t MAX_FUNCTION_EVALUATIONS = 1536;
+constexpr uint16_t BASE_FUNCTION_EVALUATIONS = 1 + (SCREEN_W - 1) * 3;
+constexpr uint8_t MAX_ADAPTIVE_DEPTH = 3;
+constexpr double CURVE_ERROR_PIXELS = 0.65;
+constexpr double CONTINUITY_ERROR_PIXELS = 1.15;
+static_assert(MAX_FRAME_EVALUATIONS >= BASE_FUNCTION_EVALUATIONS * MAX_FUNCTIONS,
+              "Frame budget must cover all baseline samples");
 
 U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI display(U8G2_R0, OLED_CS, OLED_DC, OLED_RST);
 Keyboard keyboard;
@@ -55,6 +66,20 @@ String notice;
 uint32_t noticeUntil = 0;
 uint32_t lastFrame = 0;
 bool dirty = true;
+bool graphBaseDirty = true;
+bool graphBaseValid = false;
+uint8_t graphBaseBuffer[GRAPH_CACHE_BYTES];
+
+struct CurveSample {
+    double screenX = 0.0;
+    double screenY = 0.0;
+    bool valid = false;
+};
+
+struct EvaluationBudget {
+    uint16_t used = 0;
+    uint16_t limit = 0;
+};
 
 FunctionSlot &currentFunction() {
     return functions[activeFunction];
@@ -70,12 +95,18 @@ bool noticeActive() {
     return notice.length() && static_cast<int32_t>(noticeUntil - millis()) > 0;
 }
 
+void markGraphBaseDirty() {
+    graphBaseDirty = true;
+    graphBaseValid = false;
+    dirty = true;
+}
+
 void resetView() {
     centerX = 0.0;
     centerY = 0.0;
     pixelsPerUnit = 20.0;
     traceX = 0.0;
-    dirty = true;
+    markGraphBaseDirty();
 }
 
 String shortNumber(double value) {
@@ -191,7 +222,7 @@ bool compileFunctions() {
             return false;
         }
     }
-    dirty = true;
+    markGraphBaseDirty();
     if (!hasFunction) {
         setNotice("Enter at least one function");
         return false;
@@ -375,32 +406,212 @@ bool styleVisible(uint8_t style, int x) {
     return x % 9 < 5 || x % 9 == 7;
 }
 
-void drawCurve(const FunctionSlot &slot, uint8_t style) {
-    bool previousValid = false;
-    double previousY = 0.0;
-    int previousPy = 0;
-    for (int px = 0; px < SCREEN_W; ++px) {
-        const double x = centerX + (px - SCREEN_W * 0.5) / pixelsPerUnit;
-        double y = 0.0;
-        const bool valid = slot.parser.evaluate(x, degrees, y);
-        const double screenY = SCREEN_H * 0.5 - (y - centerY) * pixelsPerUnit;
-        const bool visible = valid && screenY >= 0.0 && screenY < SCREEN_H;
-        const int py = visible ? lround(screenY) : 0;
+bool evaluateCurveSample(const FunctionSlot &slot, double screenX, CurveSample &sample,
+                         EvaluationBudget &budget) {
+    sample.screenX = screenX;
+    sample.valid = false;
+    if (budget.used >= budget.limit) return false;
+    ++budget.used;
 
-        if (visible && styleVisible(style, px)) display.drawPixel(px, py);
-        if (visible && previousValid && styleVisible(style, px) && abs(py - previousPy) <= 32) {
-            const double midX = centerX + (px - 0.5 - SCREEN_W * 0.5) / pixelsPerUnit;
-            double midY = 0.0;
-            const bool midValid = slot.parser.evaluate(midX, degrees, midY);
-            const double expected = (previousY + y) * 0.5;
-            if (midValid && fabs(midY - expected) * pixelsPerUnit < 12.0) {
-                display.drawLine(px - 1, previousPy, px, py);
-            }
-        }
-        previousValid = visible;
-        previousY = y;
-        previousPy = py;
+    const double x = centerX + (screenX - SCREEN_W * 0.5) / pixelsPerUnit;
+    double y = 0.0;
+    if (!slot.parser.evaluate(x, degrees, y)) return true;
+    sample.screenY = SCREEN_H * 0.5 - (y - centerY) * pixelsPerUnit;
+    sample.valid = isfinite(sample.screenY);
+    return true;
+}
+
+bool sampleVisible(const CurveSample &sample) {
+    return sample.valid && sample.screenY >= 0.0 && sample.screenY < SCREEN_H;
+}
+
+void drawCurvePoint(const CurveSample &sample, uint8_t style) {
+    if (!sampleVisible(sample)) return;
+    const int x = constrain(static_cast<int>(lround(sample.screenX)), 0, SCREEN_W - 1);
+    if (styleVisible(style, x)) display.drawPixel(x, lround(sample.screenY));
+}
+
+void drawClippedCurveSegment(const CurveSample &left, const CurveSample &right, uint8_t style) {
+    if (!left.valid || !right.valid) return;
+    const double maxY = SCREEN_H - 1.0;
+    if ((left.screenY < 0.0 && right.screenY < 0.0) ||
+        (left.screenY > maxY && right.screenY > maxY)) return;
+
+    const double deltaY = right.screenY - left.screenY;
+    double start = 0.0;
+    double end = 1.0;
+    if (fabs(deltaY) < 1e-12) {
+        if (left.screenY < 0.0 || left.screenY > maxY) return;
+    } else if (deltaY > 0.0) {
+        start = max(start, (0.0 - left.screenY) / deltaY);
+        end = min(end, (maxY - left.screenY) / deltaY);
+    } else {
+        start = max(start, (maxY - left.screenY) / deltaY);
+        end = min(end, (0.0 - left.screenY) / deltaY);
     }
+    if (start > end) return;
+
+    const double deltaX = right.screenX - left.screenX;
+    const double x0 = left.screenX + deltaX * start;
+    const double y0 = left.screenY + deltaY * start;
+    const double x1 = left.screenX + deltaX * end;
+    const double y1 = left.screenY + deltaY * end;
+    const int styleX = constrain(static_cast<int>(lround((x0 + x1) * 0.5)), 0, SCREEN_W - 1);
+    if (!styleVisible(style, styleX)) return;
+    display.drawLine(constrain(static_cast<int>(lround(x0)), 0, SCREEN_W - 1),
+                     constrain(static_cast<int>(lround(y0)), 0, SCREEN_H - 1),
+                     constrain(static_cast<int>(lround(x1)), 0, SCREEN_W - 1),
+                     constrain(static_cast<int>(lround(y1)), 0, SCREEN_H - 1));
+}
+
+double linearError(const CurveSample &left, const CurveSample &sample, const CurveSample &right) {
+    const double width = right.screenX - left.screenX;
+    if (!left.valid || !sample.valid || !right.valid || width <= 0.0) return INFINITY;
+    const double ratio = (sample.screenX - left.screenX) / width;
+    const double expected = left.screenY * (1.0 - ratio) + right.screenY * ratio;
+    return fabs(sample.screenY - expected);
+}
+
+bool samplesNeedRefinement(const CurveSample *samples, uint8_t count) {
+    uint8_t validCount = 0;
+    double minY = INFINITY;
+    double maxY = -INFINITY;
+    for (uint8_t i = 0; i < count; ++i) {
+        if (!samples[i].valid) continue;
+        ++validCount;
+        minY = min(minY, samples[i].screenY);
+        maxY = max(maxY, samples[i].screenY);
+    }
+    if (validCount == 0) return false;
+    if (validCount != count) return true;
+
+    double maxError = 0.0;
+    for (uint8_t i = 1; i + 1 < count; ++i) {
+        maxError = max(maxError, linearError(samples[0], samples[i], samples[count - 1]));
+    }
+    const bool nearView = maxY >= -8.0 && minY <= SCREEN_H + 7.0;
+    if (!nearView && (maxY < 0.0 || minY >= SCREEN_H) && maxError < 4.0) return false;
+    if (maxError > CURVE_ERROR_PIXELS) return true;
+    if (maxY - minY > 24.0 && maxError > 0.25) return true;
+
+    for (uint8_t i = 1; i + 1 < count; ++i) {
+        const double before = samples[i].screenY - samples[i - 1].screenY;
+        const double after = samples[i + 1].screenY - samples[i].screenY;
+        if (before * after < 0.0 && min(fabs(before), fabs(after)) > 0.5) return true;
+    }
+    return false;
+}
+
+bool samplesContinuous(const CurveSample *samples, uint8_t count) {
+    for (uint8_t i = 0; i < count; ++i) {
+        if (!samples[i].valid) return false;
+    }
+    const double span = fabs(samples[count - 1].screenY - samples[0].screenY);
+    const double tolerance = CONTINUITY_ERROR_PIXELS + min(2.0, span * 0.025);
+    for (uint8_t i = 1; i + 1 < count; ++i) {
+        if (linearError(samples[0], samples[i], samples[count - 1]) > tolerance) return false;
+    }
+    return true;
+}
+
+void drawSamplePolyline(const CurveSample *samples, uint8_t count, uint8_t style) {
+    for (uint8_t i = 0; i < count; ++i) drawCurvePoint(samples[i], style);
+    if (!samplesContinuous(samples, count)) return;
+    for (uint8_t i = 1; i < count; ++i) drawClippedCurveSegment(samples[i - 1], samples[i], style);
+}
+
+void drawAdaptiveTriple(const FunctionSlot &slot, const CurveSample &left,
+                        const CurveSample &middle, const CurveSample &right,
+                        uint8_t style, uint8_t depth, EvaluationBudget &budget) {
+    const CurveSample samples[3] = {left, middle, right};
+    const bool refine = samplesNeedRefinement(samples, 3);
+    if (refine && depth < MAX_ADAPTIVE_DEPTH && budget.limit - budget.used >= 2) {
+        CurveSample leftMiddle;
+        CurveSample rightMiddle;
+        evaluateCurveSample(slot, (left.screenX + middle.screenX) * 0.5, leftMiddle, budget);
+        evaluateCurveSample(slot, (middle.screenX + right.screenX) * 0.5, rightMiddle, budget);
+        drawAdaptiveTriple(slot, left, leftMiddle, middle, style, depth + 1, budget);
+        drawAdaptiveTriple(slot, middle, rightMiddle, right, style, depth + 1, budget);
+        return;
+    }
+    drawSamplePolyline(samples, 3, style);
+}
+
+void drawRefinedInterval(const FunctionSlot &slot, const CurveSample *samples,
+                         uint8_t style, EvaluationBudget &budget) {
+    CurveSample middles[3];
+    bool sampled[3] = {false, false, false};
+    for (uint8_t i = 0; i < 3 && budget.used < budget.limit; ++i) {
+        sampled[i] = evaluateCurveSample(slot, (samples[i].screenX + samples[i + 1].screenX) * 0.5,
+                                         middles[i], budget);
+    }
+    for (uint8_t i = 0; i < 3; ++i) {
+        if (sampled[i]) drawAdaptiveTriple(slot, samples[i], middles[i], samples[i + 1], style, 0, budget);
+        else {
+            drawCurvePoint(samples[i], style);
+            drawCurvePoint(samples[i + 1], style);
+        }
+    }
+}
+
+void drawCurve(const FunctionSlot &slot, uint8_t style, uint16_t allowance,
+               uint16_t &frameEvaluations) {
+    EvaluationBudget budget;
+    budget.limit = allowance;
+    const uint16_t adaptiveTotal = allowance > BASE_FUNCTION_EVALUATIONS
+                                       ? allowance - BASE_FUNCTION_EVALUATIONS
+                                       : 0;
+    uint16_t adaptiveCredit = 0;
+    uint16_t adaptiveRemainder = 0;
+    CurveSample left;
+    if (!evaluateCurveSample(slot, 0.0, left, budget)) return;
+
+    for (int px = 0; px < SCREEN_W - 1; ++px) {
+        CurveSample right;
+        CurveSample middle;
+        CurveSample probe;
+        evaluateCurveSample(slot, px + 1.0, right, budget);
+        evaluateCurveSample(slot, px + 0.5, middle, budget);
+        const double probeOffset = (px & 1) ? 0.625 : 0.375;
+        evaluateCurveSample(slot, px + probeOffset, probe, budget);
+
+        CurveSample samples[4];
+        samples[0] = left;
+        if (probeOffset < 0.5) {
+            samples[1] = probe;
+            samples[2] = middle;
+        } else {
+            samples[1] = middle;
+            samples[2] = probe;
+        }
+        samples[3] = right;
+
+        adaptiveRemainder += adaptiveTotal;
+        adaptiveCredit += adaptiveRemainder / (SCREEN_W - 1);
+        adaptiveRemainder %= SCREEN_W - 1;
+        const uint16_t remainingBaseline = (SCREEN_W - 2 - px) * 3;
+        const uint16_t fullLimit = budget.limit;
+        const uint16_t available = fullLimit > budget.used + remainingBaseline
+                                       ? fullLimit - budget.used - remainingBaseline
+                                       : 0;
+        const uint16_t granted = min(adaptiveCredit, available);
+        budget.limit = budget.used + granted;
+
+        if (samplesNeedRefinement(samples, 4)) {
+            if (granted >= 3) {
+                const uint16_t before = budget.used;
+                drawRefinedInterval(slot, samples, style, budget);
+                adaptiveCredit -= budget.used - before;
+            } else {
+                for (uint8_t i = 0; i < 4; ++i) drawCurvePoint(samples[i], style);
+            }
+        } else {
+            drawSamplePolyline(samples, 4, style);
+        }
+        budget.limit = fullLimit;
+        left = right;
+    }
+    frameEvaluations += budget.used;
 }
 
 void drawTrace() {
@@ -443,12 +654,31 @@ void drawGraphStatus() {
 }
 
 void drawGraph() {
-    display.clearBuffer();
-    drawGridAndAxes();
-    for (uint8_t i = 0; i < functionCount; ++i) {
-        if (functions[i].valid) drawCurve(functions[i], i);
+    if (graphBaseDirty || !graphBaseValid) {
+        display.clearBuffer();
+        drawGridAndAxes();
+
+        uint8_t remainingFunctions = 0;
+        for (uint8_t i = 0; i < functionCount; ++i) {
+            if (functions[i].valid) ++remainingFunctions;
+        }
+        uint16_t frameEvaluations = 0;
+        for (uint8_t i = 0; i < functionCount; ++i) {
+            if (!functions[i].valid) continue;
+            const uint16_t available = MAX_FRAME_EVALUATIONS - frameEvaluations;
+            const uint16_t fairShare = available / remainingFunctions;
+            const uint16_t allowance = std::min<uint16_t>(MAX_FUNCTION_EVALUATIONS, fairShare);
+            drawCurve(functions[i], i, allowance, frameEvaluations);
+            --remainingFunctions;
+        }
+        drawAxisLabels();
+        memcpy(graphBaseBuffer, display.getBufferPtr(), GRAPH_CACHE_BYTES);
+        graphBaseDirty = false;
+        graphBaseValid = true;
+    } else {
+        memcpy(display.getBufferPtr(), graphBaseBuffer, GRAPH_CACHE_BYTES);
     }
-    drawAxisLabels();
+
     drawTrace();
     drawGraphStatus();
     if (noticeActive()) {
@@ -586,14 +816,14 @@ void handleGraphKey(const KeyEvent &event) {
     if (event.action == KeyAction::Repeat && movementKey && !shift && !traceEnabled) return;
     if (event.action == KeyAction::Press && event.key == KeyCode::Tab) { page = Page::Editor; dirty = true; return; }
     if (event.action == KeyAction::Press && event.key == KeyCode::Enter) { traceEnabled = !traceEnabled; traceX = centerX; dirty = true; return; }
-    if (event.action == KeyAction::Press && event.key == KeyCode::Dot) { gridEnabled = !gridEnabled; dirty = true; return; }
-    if (event.action == KeyAction::Press && event.key == KeyCode::Angle) { degrees = !degrees; dirty = true; return; }
-    if (event.action == KeyAction::Press && event.key == KeyCode::Extra) { labelsEnabled = !labelsEnabled; dirty = true; return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::Dot) { gridEnabled = !gridEnabled; markGraphBaseDirty(); return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::Angle) { degrees = !degrees; markGraphBaseDirty(); return; }
+    if (event.action == KeyAction::Press && event.key == KeyCode::Extra) { labelsEnabled = !labelsEnabled; markGraphBaseDirty(); return; }
     if (event.action == KeyAction::Press && !shift && event.key == KeyCode::K8) { selectGraphFunction(-1); return; }
     if (event.action == KeyAction::Press && !shift && event.key == KeyCode::K2) { selectGraphFunction(1); return; }
     if (event.action == KeyAction::Press && event.key == KeyCode::K5 && !shift) { resetView(); return; }
-    if (event.key == KeyCode::Plus) { pixelsPerUnit = min(160.0, pixelsPerUnit * 1.25); dirty = true; return; }
-    if (event.key == KeyCode::Minus) { pixelsPerUnit = max(2.0, pixelsPerUnit / 1.25); dirty = true; return; }
+    if (event.key == KeyCode::Plus) { pixelsPerUnit = min(160.0, pixelsPerUnit * 1.25); markGraphBaseDirty(); return; }
+    if (event.key == KeyCode::Minus) { pixelsPerUnit = max(2.0, pixelsPerUnit / 1.25); markGraphBaseDirty(); return; }
 
     if (shift) {
         if (event.key == KeyCode::K4) centerX -= 32.0 / pixelsPerUnit;
@@ -601,7 +831,7 @@ void handleGraphKey(const KeyEvent &event) {
         else if (event.key == KeyCode::K8) centerY += 12.0 / pixelsPerUnit;
         else if (event.key == KeyCode::K2) centerY -= 12.0 / pixelsPerUnit;
         else return;
-        dirty = true;
+        markGraphBaseDirty();
         return;
     }
     if (traceEnabled && (event.key == KeyCode::K4 || event.key == KeyCode::K6)) {
@@ -656,7 +886,7 @@ void loop() {
         notice = "";
         dirty = true;
     }
-    if ((dirty || page == Page::Graph) && millis() - lastFrame >= 33) {
+    if (dirty && millis() - lastFrame >= MIN_FRAME_INTERVAL_MS) {
         lastFrame = millis();
         drawCurrentPage();
     }

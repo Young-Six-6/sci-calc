@@ -1,0 +1,14 @@
+{
+  "name": "ESP32-A2DP",
+  "version": "1.8.11",
+  "description": "Vendored A2DP source support for the Sci-Calc music player",
+  "license": "Apache-2.0",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "build": {
+    "srcFilter": [
+      "+<BluetoothA2DPCommon.cpp>",
+      "+<BluetoothA2DPSource.cpp>"
+    ]
+  }
+}

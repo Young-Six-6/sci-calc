@@ -53,10 +53,16 @@ Added a standalone graphing calculator program.
 v1.6
 Added multi-function graphing and optional axis labels.
 
+v1.7
+Improved graph rendering and added a standalone PCM5102A music player.
+
+v1.8
+Integrated Bluetooth headphone output into the music player and expanded both OTA application slots.
+
 
 */
 
-const std::string VERSION = "1.6";
+const std::string VERSION = "1.8";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;
