@@ -1,269 +1,212 @@
-# Music player
-# 音乐播放器
+# Music player integration
+# 音乐播放器集成说明
 
-The ESP32-WROOM-32E has enough CPU, RAM, SPI bandwidth, and a hardware I2S peripheral to decode common compressed audio from the microSD card while driving a PCM5102A.
+The calculator uses `games/MusicPlayer` as an independent application image named `music.bin`.
 
-ESP32-WROOM-32E 具备足够的 CPU 性能、RAM、SPI 带宽和硬件 I2S 外设，可以从 microSD 卡解码常见压缩音频并驱动 PCM5102A。
+计算器将 `games/MusicPlayer` 作为名为 `music.bin` 的独立应用镜像使用。
 
-The player is a standalone firmware image (`/music.bin`), so its audio decoder does not consume space in the normal calculator firmware.
+The application is intentionally wired-only, and all Bluetooth UI and runtime paths have been removed from the linked firmware.
 
-播放器使用独立固件镜像（`/music.bin`），因此音频解码器不会占用普通计算器主固件的空间。
+该应用有意仅支持有线输出，所有蓝牙界面和运行路径都已从最终链接固件中移除。
 
-Bluetooth headphone output is integrated into this same image rather than duplicated in a second player.
+The PlatformIO dependency graph contains U8g2, ESP32-audioI2S, FS, SD, SPI, and Update, with no ESP32-A2DP dependency.
 
-蓝牙耳机输出已整合到同一个镜像中，没有再复制出第二套播放器。
+PlatformIO 依赖图包含 U8g2、ESP32-audioI2S、FS、SD、SPI 和 Update，不包含 ESP32-A2DP 依赖。
 
-The SD scanner, decoders, playlist, transport controls, repeat state, shuffle state, and volume control are shared by both outputs.
+The framework may retain the small `esp_bt_controller_mem_release` startup symbol because it releases unused Bluetooth memory rather than starting Bluetooth.
 
-SD 扫描、解码器、播放列表、播放控制、循环状态、随机状态和音量控制均由两种输出共用。
+框架可能保留很小的 `esp_bt_controller_mem_release` 启动符号，因为它用于释放未使用的蓝牙内存，而不是启动蓝牙。
 
-## One-time partition update
-## 一次性分区更新
+## Runtime design
+## 运行设计
 
-The Bluetooth-enabled player is about 1.63 MB.
+PCM5102A receives standard stereo I2S on BCK GPIO21, LRCK GPIO22, and DIN GPIO15.
 
-启用蓝牙后的播放器约为 1.63MB。
+PCM5102A 通过 BCK GPIO21、LRCK GPIO22 和 DIN GPIO15 接收标准立体声 I2S。
 
-The repository now uses the standard `min_spiffs.csv` dual-OTA layout, which provides two 1.875 MB application slots on the 4 MB flash chip.
+OLED and SD share the calculator SPI bus, while audio uses the independent I2S peripheral and DMA.
 
-项目现在使用标准 `min_spiffs.csv` 双 OTA 布局，在 4MB Flash 芯片上提供两个 1.875MB 应用槽。
+OLED 与 SD 共用计算器 SPI 总线，音频则使用独立的 I2S 外设和 DMA。
 
-The previous default layout provides only 1.25 MB per slot, so replacing only `/music.bin` on an old installation will fail with an insufficient-space update error.
+Compressed audio is decoded by the vendored ESP32-audioI2S library.
 
-以前的默认布局每个应用槽只有 1.25MB，因此在旧安装上只替换 `/music.bin` 会因为升级空间不足而失败。
+压缩音频由项目内置的 ESP32-audioI2S 库解码。
 
-Connect the calculator over USB and perform one complete upload from the main-firmware directory.
+MIDI is streamed by `MidiPlayer` using one open file and bounded fixed-size track caches.
 
-请通过 USB 连接计算器，并在主固件目录中执行一次完整上传。
+MIDI 由 `MidiPlayer` 使用一个打开的文件和有界固定大小音轨缓存进行流式播放。
+
+The MIDI engine supports 24 tracks, 16 channels, 32 full-quality voices, controller state, percussion, pitch bend, and compact synthesized instrument families.
+
+MIDI 引擎支持 24 音轨、16 通道、32 路完整音质复音、控制器状态、打击乐、弯音和紧凑合成音色族。
+
+`SHIFT+1` cycles the `GM`, `PIANO`, `MELLOW`, and `SYNTH` tone profiles during MIDI playback.
+
+播放 MIDI 时，`SHIFT+1` 可依次切换 `GM`、`PIANO`、`MELLOW` 和 `SYNTH` 音色方案。
+
+The GM piano family uses a velocity-dependent hammer transient, decaying upper harmonics, and key-dependent envelopes instead of the previous fixed harmonic mixture.
+
+GM 钢琴组现在使用随力度变化的击弦瞬态、会衰减的高次谐波和随音高变化的包络，不再使用固定的谐波混合。
+
+The forced profiles affect melodic channels only, so MIDI channel 10 keeps its percussion mapping.
+
+强制音色方案仅影响旋律通道，因此 MIDI 第 10 通道仍保持打击乐映射。
+
+The patch definitions in `MidiPlayer::patchFor` are the source-level customization point for waveform, attack, decay, release, and sustain.
+
+`MidiPlayer::patchFor` 中的音色定义是源码级自定义入口，可调整波形、起音、衰减、释音和延音电平。
+
+The player does not load a complete MIDI file or a SoundFont into RAM.
+
+播放器不会把整个 MIDI 文件或 SoundFont 载入 RAM。
+
+## Stability policy
+## 稳定性策略
+
+The 20-by-512-frame I2S DMA queue is deliberately larger than the render batch and provides about 232 ms of latency reserve.
+
+20×512 帧的 I2S DMA 队列有意大于合成批次，可提供约 232 毫秒延迟余量。
+
+MIDI renders 256 frames per call, and all channel gain and pan coefficients are updated only on MIDI controller events.
+
+MIDI 每次合成 256 帧，所有通道增益和声像系数仅在 MIDI 控制器事件发生时更新。
+
+Each of the 24 MIDI tracks receives a 256-byte read cache to limit SD seek spikes.
+
+24 个 MIDI 音轨各自具有 256 字节读取缓存，以限制 SD 寻址峰值。
+
+All 32 voices retain the complete instrument waveform.
+
+全部 32 个复音均保留完整乐器波形。
+
+An experimental 32-plus-8 mixed mode was removed after the no-PSRAM test unit reached 107 percent synthesis load and produced unstable audio in a dense passage.
+
+实验性的 32+8 混合模式已移除，因为无 PSRAM 实机在密集段达到 107% 合成负载并产生不稳定声音。
+
+Envelope and gain products are cached at the lower envelope update rate, while oscillator rendering remains sample-accurate.
+
+包络与增益乘积以较低的包络更新频率缓存，振荡器合成仍保持逐采样精度。
+
+The allocator distinguishes release-tail reuse, sustain-held reuse, and genuinely held-note reuse in serial diagnostics.
+
+分配器会在串口诊断中区分释放尾音复用、延音踏板音符复用和真正按住音符的复用。
+
+At the physical ceiling, held notes are ranked by target MIDI velocity instead of their instantaneous attack envelope.
+
+达到物理上限时，仍按住的音符按目标 MIDI 力度排序，而不是按起音瞬间的包络电平排序。
+
+A new melodic note must exceed the quietest held note by 12 velocity levels before replacement is allowed.
+
+新的旋律音必须比最弱按键音高 12 级力度，才允许执行替换。
+
+Lower-priority excess notes and percussion that would displace held melody are counted as `drop` and ignored.
+
+优先级较低的超额音符，以及会替换按键旋律的打击乐，会计入 `drop` 并被忽略。
+
+Display refresh is reduced to 320 ms while all 32 voices are active, preventing non-audio SPI work from consuming overload margin.
+
+全部 32 复音活动时，屏幕刷新间隔降低至 320 毫秒，避免非音频 SPI 工作占用超限余量。
+
+The OLED reports `MIDI polyphony limit` once when an extreme track exceeds the physical 32-voice ceiling.
+
+当极端曲目超过物理 32 复音上限时，OLED 会提示一次 `MIDI polyphony limit`。
+
+MIDI duration preview is calculated from the complete tempo map when a track is first opened and then stored in `/.sci_midi_cache` on the SD card.
+
+首次打开曲目时会根据完整速度图计算 MIDI 总时长，随后将结果存入 SD 卡的 `/.sci_midi_cache`。
+
+Cache records are validated using the path, file size, and a head-and-tail signature; the cache is capped at 16 KB and rebuilt automatically when oversized.
+
+缓存记录会通过路径、文件大小和首尾指纹校验；缓存上限为 16KB，超限后会自动重建。
+
+MIDI seeking remains disabled because accurate jumping requires reconstructing controller, program, sustain, and active-note state from the beginning.
+
+MIDI 快进退仍然关闭，因为准确跳转需要从开头重建控制器、音色、延音和活动音符状态。
+
+The stereo-linked limiter, quietest-voice reuse, and short steal tail preserve dense chords while reducing clipping and clicks.
+
+双声道联动限制器、最安静复音复用和短暂抢音尾音会保留密集和弦，同时减少削波与爆声。
+
+Decoder buffers are released on a compressed-audio-to-MIDI transition, while the small reusable input ring remains allocated to avoid heap churn.
+
+从压缩音频切换到 MIDI 时会释放解码器缓冲区，同时保留较小的可复用输入环形缓冲区，以避免堆内存反复变化。
+
+## SD and OTA contract
+## SD 与 OTA 约定
+
+The SD card should use FAT32 and contain `/music.bin`, `/main.bin`, and a `/music` directory for media.
+
+SD 卡应使用 FAT32，并包含 `/music.bin`、`/main.bin` 和用于存放媒体的 `/music` 目录。
+
+The player scans at most three directory levels and indexes at most 96 supported files.
+
+播放器最多扫描三级目录，并索引最多 96 个受支持文件。
+
+Holding ESC for about one second installs `/main.bin` through the Arduino Update API and restarts the calculator.
+
+长按 ESC 约一秒会通过 Arduino Update API 安装 `/main.bin` 并重启计算器。
+
+`music.bin` is an application image for the dual-OTA layout and is not a complete flash image.
+
+`music.bin` 是用于双 OTA 分区的应用镜像，不是完整 Flash 镜像。
+
+Do not write it at offset `0x0`.
+
+不要把它写入地址 `0x0`。
+
+## Release procedure
+## 发布流程
+
+Build the standalone player and copy the same binary to both release locations.
+
+编译独立播放器，并把同一个二进制文件复制到两个发布位置。
 
 ```powershell
-cd C:\Users\wang\Documents\camera\sci-calcme\sci_calc_code
-pio run -t upload
+cd C:\Users\wang\Documents\camera\sci-calcme\games\MusicPlayer
+& "$env:USERPROFILE\.platformio\penv\Scripts\platformio.exe" run
+Copy-Item .pio\build\music_player\firmware.bin .\firmware.bin -Force
+Copy-Item .pio\build\music_player\firmware.bin ..\..\sci_calc_code\bin\music.bin -Force
 ```
 
-PlatformIO writes the bootloader at `0x1000`, the new partition table at `0x8000`, the OTA initializer at `0xE000`, and the main firmware at `0x10000`.
+Verify that the two published files have the same SHA-256 hash as the PlatformIO output.
 
-PlatformIO 会把引导程序写入 `0x1000`，新分区表写入 `0x8000`，OTA 初始化数据写入 `0xE000`，主固件写入 `0x10000`。
+请确认两个发布文件的 SHA-256 与 PlatformIO 输出完全一致。
 
-The repository also includes the merged image `sci_calc_code/bin/sci-calc-full-1.8-min-spiffs.bin` for flash tools that accept one file.
+For direct service flashing on the verified calculator only, the active `app1` slot starts at `0x1F0000`.
 
-项目还提供合并镜像 `sci_calc_code/bin/sci-calc-full-1.8-min-spiffs.bin`，供支持单文件刷写的工具使用。
+仅在已验证的这台计算器上进行直接维护刷写时，活动 `app1` 槽起始地址为 `0x1F0000`。
 
-Flash that merged image at offset `0x0`.
+Read the partition table and OTA data again before using a raw offset on another unit.
 
-请把该合并镜像刷写到地址 `0x0`。
+在其他设备上使用裸地址之前，请重新读取分区表和 OTA 数据。
 
-Do not flash `music.bin` at `0x0`, because it is an OTA application image intended for SD-card switching.
+## Acceptance checks
+## 验收检查
 
-不要把 `music.bin` 刷写到 `0x0`，因为它是供 SD 卡切换使用的 OTA 应用镜像。
+Confirm that an MP3 reports channels, sample rate, bit depth, and bitrate without `Could not open this track`.
 
-This is required only once unless the partition table is later changed again.
+确认 MP3 能报告通道数、采样率、位深和码率，并且不会出现 `Could not open this track`。
 
-只要以后不再更改分区表，这个完整刷写步骤只需执行一次。
+Switch repeatedly between MP3 and MIDI and confirm that the boot banner does not reappear.
 
-After the upload, use SD-card application switching normally.
+在 MP3 与 MIDI 之间反复切换，并确认启动信息不会再次出现。
 
-完整上传后，即可照常使用 SD 卡切换应用。
+During a demanding MIDI, confirm that `i2s=0` and that `load` remains comfortably below 100 percent.
 
-## PCM5102A connection
-## PCM5102A 接线
+播放高负载 MIDI 时，请确认 `i2s=0`，并且 `load` 明显低于 100%。
 
-| Calculator<br>计算器 | PCM5102A |
-| --- | --- |
-| GPIO15 | DIN |
-| GPIO22 | LCK、LRCK 或 WS |
-| GPIO21 | BCK |
-| GND | SCK |
-| GND | GND |
+Listen for clipped attacks, stuck notes, crackles, or gaps during dense chords and track changes.
 
-No MCLK signal is required for the usual PCM5102A breakout.
+请在密集和弦与切歌期间留意削波起音、持续不消失的音符、爆裂声或声音间断。
 
-常见的 PCM5102A 模块不需要 MCLK 信号。
+The August 13, 2026 COM7 test passed these software checks with 320 kbps MP3 files and a representative MIDI reaching all 32 voices with `held=0` and `i2s=0`.
 
-In this three-wire I2S configuration, SCK must be connected to GND so the DAC uses its internal PLL with BCK as the reference.
+2026 年 8 月 13 日的 COM7 实测使用 320kbps MP3 和达到全部 32 复音的代表性 MIDI，并以 `held=0`、`i2s=0` 通过上述软件检查。
 
-在这种三线 I2S 配置中，SCK 必须接 GND，使 DAC 使用内部 PLL，并以 BCK 作为参考时钟。
+The final August 14, 2026 dynamic-piano test reached all 32 voices and 66.6 percent peak reporting-window load with `drop=0`, `held=0`, and `i2s=0`.
 
-Do not leave SCK floating: this can produce recognizable rhythm with badly scrambled audio.
+2026 年 8 月 14 日最终动态钢琴版本实测达到全部 32 复音，报告周期最高负载为 66.6%，并保持 `drop=0`、`held=0` 和 `i2s=0`。
 
-不要让 SCK 悬空，否则可能出现能听到节拍但声音严重混乱的情况。
+The MIDI duration cache was also confirmed on COM7 with `duration=362s cache=hit`, while free heap remained stable at about 231 KB.
 
-Connect the DAC board's power pin according to that particular module's marking; its digital input signals are 3.3 V.
-
-请按照具体模块上的标识连接 DAC 电源；其数字输入信号为 3.3V 电平。
-
-If exposed, set FMT low for standard I2S and keep XSMT high to unmute the DAC.
-
-如果模块引出了这些配置脚，请将 FMT 置低以选择标准 I2S，并将 XSMT 保持高电平以解除静音。
-
-The DAC outputs are line level.
-
-DAC 输出为线路电平。
-
-Feed L/R into an amplifier, powered speaker, or line input rather than connecting a passive loudspeaker directly.
-
-请将 L/R 接入功放、有源音箱或线路输入，不要直接连接无源扬声器。
-
-GPIO21/22 are otherwise unused in the current firmware.
-
-GPIO21 和 GPIO22 在当前固件中没有其他用途。
-
-GPIO15 is a boot-strapping pin, so it is assigned to the PCM5102A high-impedance DIN input rather than a clock line.
-
-GPIO15 是启动配置脚，因此将它连接到 PCM5102A 的高阻 DIN 输入，而不是时钟线。
-
-Do not add an external pull-up or pull-down to GPIO15.
-
-不要给 GPIO15 增加外部上拉或下拉电阻。
-
-This connection leaves GPIO25/26/27 free for the keyboard's last three columns, so the complete keyboard remains usable during playback.
-
-这种接线会保留 GPIO25、GPIO26 和 GPIO27 给键盘后三列使用，因此播放音乐时整个键盘均可操作。
-
-## Bluetooth behavior
-## 蓝牙工作方式
-
-The ESP32-WROOM-32E radio supports Classic Bluetooth BR/EDR and the A2DP source profile needed to send SBC audio to headphones.
-
-ESP32-WROOM-32E 无线电支持经典蓝牙 BR/EDR，以及向耳机发送 SBC 音频所需的 A2DP Source 协议。
-
-Bluetooth Low Energy by itself is not an audio transport for this player.
-
-单独的低功耗蓝牙 BLE 不能作为本播放器的音频传输方式。
-
-The device picker shows only discovered devices whose Bluetooth class advertises an audio-rendering service.
-
-设备选择器只显示蓝牙类别中声明了音频播放服务的设备。
-
-Names that the compact OLED font cannot represent are displayed with question marks, but selection still uses the device address during that scan.
-
-紧凑 OLED 字体无法显示的名称字符会显示为问号，但本次扫描中的选择仍使用设备地址。
-
-The chosen name is stored in ESP32 NVS and is matched during later scans.
-
-选中的名称会保存在 ESP32 NVS 中，并在以后扫描时进行匹配。
-
-Only one Bluetooth output device is used at a time.
-
-一次只会使用一个蓝牙输出设备。
-
-A2DP pulls stereo 16-bit PCM at 44.1 kHz.
-
-A2DP 以 44.1kHz 拉取双声道 16 位 PCM。
-
-The player intercepts the decoder's volume-adjusted PCM, converts other sampling rates with linear interpolation, and places the result in a bounded 2048-frame ring buffer.
-
-播放器会截取解码器完成音量调整后的 PCM，使用线性插值转换其他采样率，并将结果放入容量为 2048 帧的有界环形缓冲区。
-
-The bounded buffer keeps playback time synchronized with the Bluetooth consumer instead of decoding the file as fast as possible.
-
-有界缓冲区会让播放时间与蓝牙接收端保持同步，避免文件被不受限制地快速解码。
-
-If the headphones disconnect while Bluetooth is selected, the main decoder waits and the OLED shows `WAIT BT`.
-
-选择蓝牙后如果耳机断开，主解码器会等待，OLED 会显示 `WAIT BT`。
-
-Selecting PCM5102A immediately restores wired output.
-
-选择 PCM5102A 会立即恢复有线输出。
-
-Pressing `POWER` on the output page fully stops A2DP discovery or connection and returns to PCM5102A to save power.
-
-在输出页面按 `POWER` 会完整停止 A2DP 扫描或连接并切回 PCM5102A，以节省电量。
-
-## Preparing the SD card
-## 准备 SD 卡
-
-1. Keep the card FAT32 and keep the current `/main.bin` in its root.
-   SD 卡保持 FAT32 格式，并在根目录保留当前的 `/main.bin`。
-2. Copy the generated player image to `/music.bin`.
-   将生成的播放器固件复制为 `/music.bin`。
-3. Create `/music` and copy songs into it. Subfolders are supported to depth 3.
-   创建 `/music` 目录并把歌曲复制进去，最多支持三级子目录。
-4. Use short ASCII filenames for the clearest display.
-   使用简短的 ASCII 文件名可以获得最清晰的显示效果。
-
-The scanner accepts up to 96 MP3, WAV, AAC, or M4A files.
-
-播放器最多读取 96 个 MP3、WAV、AAC 或 M4A 文件。
-
-When `/music` does not exist, it scans the SD root instead.
-
-当 `/music` 不存在时，播放器会改为扫描 SD 卡根目录。
-
-FLAC is not listed because the installed WROOM-32E module has no PSRAM and the decoder requires a larger frame buffer.
-
-没有列出 FLAC，是因为当前 WROOM-32E 模块没有 PSRAM，而该解码器需要更大的帧缓冲区。
-
-## Controls
-## 按键操作
-
-| Key<br>按键 | Now playing<br>正在播放页面 | Playlist<br>播放列表页面 |
-| --- | --- | --- |
-| `5`, `ENTER` | Play/pause<br>播放或暂停 | Play selected track<br>播放选中的歌曲 |
-| `8`, `2` | Previous/next track<br>上一曲或下一曲 | Move selection up/down<br>向上或向下移动选择项 |
-| `4`, `6` | Seek -10/+10 seconds<br>后退或前进 10 秒 | - |
-| `SHIFT+4`, `SHIFT+6` | Seek -60/+60 seconds<br>后退或前进 60 秒 | - |
-| `7`, `9` or `-`, `+` | Volume down/up<br>降低或提高音量 | Page up/down<br>向上或向下翻页 |
-| `1` or `RPN/Norm` | Repeat off/all/one<br>关闭循环、列表循环或单曲循环 | - |
-| `3` or `ANG` | Toggle shuffle<br>切换随机播放 | - |
-| `*` | Mute/unmute<br>静音或恢复声音 | Play selected track<br>播放选中的歌曲 |
-| `.`, `0`, `TAB` | Open playlist<br>打开播放列表 | Return to now playing<br>返回正在播放页面 |
-| `SHIFT+TAB` | Open audio outputs<br>打开音频输出页面 | Open audio outputs<br>打开音频输出页面 |
-| `/` | - | Return to now playing<br>返回正在播放页面 |
-| del<br>退格键 | - | Return to now playing<br>返回正在播放页面 |
-| Hold `ESC`<br>长按 `ESC` | Restore `/main.bin` and reboot<br>恢复 `/main.bin` 并重启 | Same<br>相同操作 |
-
-Audio-output page controls:
-
-音频输出页面按键：
-
-| Key<br>按键 | Action<br>操作 |
-| --- | --- |
-| `8`, `2` | Select PCM5102A or Bluetooth<br>选择 PCM5102A 或蓝牙 |
-| `5`, `ENTER` | Apply the selected output<br>启用选中的输出 |
-| `0` | Forget the current target and scan for another device<br>忘记当前目标并扫描其他设备 |
-| `POWER` | Stop Bluetooth and use PCM5102A<br>关闭蓝牙并使用 PCM5102A |
-| `TAB`, `.`, del | Return to now playing<br>返回正在播放页面 |
-
-Bluetooth-device picker controls:
-
-蓝牙设备选择页面按键：
-
-| Key<br>按键 | Action<br>操作 |
-| --- | --- |
-| `8`, `2` | Move through discovered devices<br>在扫描到的设备中移动选择项 |
-| `5`, `ENTER` | Connect to the selected device<br>连接选中的设备 |
-| `0` | Clear the list and restart discovery<br>清空列表并重新扫描 |
-| `TAB`, `.`, del | Cancel and return to PCM5102A<br>取消并切回 PCM5102A |
-
-The OLED shows the playing state, track number, format, filename, progress, elapsed and total time, volume, repeat mode, and shuffle state.
-
-OLED 会显示播放状态、曲目编号、格式、文件名、进度、已播放时间、总时间、音量、循环模式和随机播放状态。
-
-Long filenames scroll.
-
-较长的文件名会滚动显示。
-
-## Troubleshooting Bluetooth
-## 蓝牙故障排查
-
-If no device appears, confirm that the headphones are in pairing mode and are not already connected to a phone.
-
-如果没有出现设备，请确认耳机已经进入配对模式，并且没有连接到手机。
-
-If the OLED remains on `CONNECTING`, press `0`, return the headphones to pairing mode, and select them again.
-
-如果 OLED 一直显示 `CONNECTING`，请按 `0`，让耳机重新进入配对模式，然后再次选择。
-
-If music plays too fast or jumps ahead, the Bluetooth connection was lost; switch to PCM5102A or reconnect before continuing.
-
-如果音乐播放过快或进度跳跃，说明蓝牙连接已经丢失；请切回 PCM5102A，或重新连接后再继续。
-
-If installation reports insufficient space, the old 1.25 MB partition table is still installed and the one-time USB upload has not been completed.
-
-如果安装提示空间不足，说明设备仍使用旧的 1.25MB 分区表，尚未完成一次性 USB 完整上传。
-
-Bluetooth adds normal A2DP latency, so this output is intended for music rather than real-time sound effects.
-
-蓝牙会带来正常的 A2DP 延迟，因此该输出适合听音乐，不适合实时音效。
+COM7 实机还确认 MIDI 时长缓存显示 `duration=362s cache=hit`，空闲堆内存稳定在约 231KB。

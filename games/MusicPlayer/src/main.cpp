@@ -5,10 +5,13 @@
 #include <SPI.h>
 #include <Update.h>
 #include <U8g2lib.h>
+#include <driver/i2s.h>
+#include <esp_heap_caps.h>
+#include <esp_system.h>
 
 #include <algorithm>
 
-#include "BluetoothAudio.h"
+#include "MidiPlayer.h"
 #include "SafeKeyboard.h"
 
 namespace {
@@ -24,10 +27,12 @@ constexpr uint8_t MAX_SCAN_DEPTH = 3;
 constexpr uint8_t MAX_VOLUME = 21;
 constexpr uint32_t EXIT_HOLD_MS = 1000;
 constexpr uint32_t DISPLAY_INTERVAL_MS = 160;
+constexpr uint32_t MIDI_BUSY_DISPLAY_INTERVAL_MS = 320;
 
 U8G2_SSD1322_NHD_256X64_F_4W_HW_SPI display(U8G2_R0, OLED_CS, OLED_DC, OLED_RST);
 SafeKeyboard keyboard;
 Audio audio;
+MidiPlayer midi;
 
 String tracks[MAX_TRACKS];
 uint8_t trackCount = 0;
@@ -36,7 +41,7 @@ uint8_t browserTrack = 0;
 uint8_t volume = 12;
 uint8_t volumeBeforeMute = 12;
 
-enum class Page : uint8_t { NowPlaying, Browser, Output };
+enum class Page : uint8_t { NowPlaying, Browser };
 enum class RepeatMode : uint8_t { Off, All, One };
 
 Page page = Page::NowPlaying;
@@ -50,11 +55,27 @@ volatile bool endOfTrack = false;
 uint32_t lastDraw = 0;
 uint32_t marqueeOffset = 0;
 uint32_t lastMarqueeStep = 0;
+uint32_t lastMidiDiagnostics = 0;
+uint64_t midiRenderMicros = 0;
+uint32_t midiRenderedFrames = 0;
+uint32_t midiRenderPeakMicros = 0;
+uint32_t midiWriteFaults = 0;
+bool midiPolyphonyWarningShown = false;
 String notice;
 uint32_t noticeUntil = 0;
-uint8_t outputCursor = 0;
-uint8_t btDeviceCursor = 0;
-bool devicePicker = false;
+
+void setNotice(const String &text, uint32_t duration);
+
+const char *resetReasonText(esp_reset_reason_t reason) {
+    switch (reason) {
+        case ESP_RST_PANIC: return "PANIC";
+        case ESP_RST_INT_WDT: return "INT WDT";
+        case ESP_RST_TASK_WDT: return "TASK WDT";
+        case ESP_RST_WDT: return "WDT";
+        case ESP_RST_BROWNOUT: return "BROWNOUT";
+        default: return nullptr;
+    }
+}
 
 bool isAudioFile(const String &path) {
     const int dot = path.lastIndexOf('.');
@@ -62,7 +83,26 @@ bool isAudioFile(const String &path) {
     String extension = path.substring(dot + 1);
     extension.toLowerCase();
     return extension == "mp3" || extension == "wav" ||
-           extension == "aac" || extension == "m4a";
+           extension == "aac" || extension == "m4a" ||
+           extension == "mid" || extension == "midi";
+}
+
+bool isMidiFile(const String &path) {
+    const size_t length = path.length();
+    if (length < 4) return false;
+    auto lower = [](char value) {
+        return value >= 'A' && value <= 'Z' ? static_cast<char>(value + ('a' - 'A')) : value;
+    };
+    if (length >= 4 && path[length - 4] == '.' &&
+        lower(path[length - 3]) == 'm' && lower(path[length - 2]) == 'i' &&
+        lower(path[length - 1]) == 'd') return true;
+    return length >= 5 && path[length - 5] == '.' &&
+           lower(path[length - 4]) == 'm' && lower(path[length - 3]) == 'i' &&
+           lower(path[length - 2]) == 'd' && lower(path[length - 1]) == 'i';
+}
+
+bool currentIsMidi() {
+    return trackCount && isMidiFile(tracks[currentTrack]);
 }
 
 void addTrack(const String &path) {
@@ -158,12 +198,43 @@ bool startTrack(uint8_t index) {
     currentTrack = index % trackCount;
     browserTrack = currentTrack;
     marqueeOffset = 0;
+    midiRenderMicros = 0;
+    midiRenderedFrames = 0;
+    midiRenderPeakMicros = 0;
+    midiWriteFaults = 0;
+    lastMidiDiagnostics = millis();
+    midiPolyphonyWarningShown = false;
     paused = false;
     endOfTrack = false;
-    bluetoothAudio.clearAudio();
+    midi.stop();
+    const bool hadAudioDecoder = audio.getCodec() != 0;
     audio.stopSong();
-    playing = audio.connecttoFS(SD, tracks[currentTrack].c_str());
-    if (!playing) setNotice("Cannot open this track", 2200);
+    if (currentIsMidi()) {
+        if (hadAudioDecoder) audio.releaseCodecBuffers();
+        playing = midi.open(SD, tracks[currentTrack].c_str());
+        if (playing) {
+            midi.setVolume(volume);
+            midi.setVoiceLimit(MidiPlayer::MAX_VOICES);
+            i2s_set_sample_rates(static_cast<i2s_port_t>(audio.getI2sPort()), MidiPlayer::SAMPLE_RATE);
+            Serial.printf("MIDI start, duration=%us cache=%s, free heap: %u bytes\n",
+                          midi.totalDuration(), midi.durationCacheHit() ? "hit" : "scan",
+                          ESP.getFreeHeap());
+        } else {
+            setNotice(midi.errorText(), 2600);
+        }
+    } else {
+        const uint32_t heapBefore = ESP.getFreeHeap();
+        const uint32_t largestBefore = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+        playing = audio.connecttoFS(SD, tracks[currentTrack].c_str());
+        if (!playing) {
+            const bool exists = SD.exists(tracks[currentTrack].c_str());
+            setNotice(exists ? "Audio decoder init failed" : "Cannot open this track", 2600);
+            Serial.printf("Audio open failed: %s heap=%u largest=%u before=%u/%u\n",
+                          tracks[currentTrack].c_str(), ESP.getFreeHeap(),
+                          heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+                          heapBefore, largestBefore);
+        }
+    }
     return playing;
 }
 
@@ -197,7 +268,13 @@ void togglePause() {
         startTrack(currentTrack);
         return;
     }
-    if (audio.pauseResume()) paused = !paused;
+    if (currentIsMidi()) {
+        paused = !paused;
+        midi.setPaused(paused);
+        i2s_zero_dma_buffer(static_cast<i2s_port_t>(audio.getI2sPort()));
+    } else if (audio.pauseResume()) {
+        paused = !paused;
+    }
 }
 
 void changeVolume(int delta) {
@@ -206,6 +283,7 @@ void changeVolume(int delta) {
     volumeBeforeMute = changed;
     muted = false;
     audio.setVolume(volume);
+    midi.setVolume(volume);
 }
 
 void toggleMute() {
@@ -218,10 +296,15 @@ void toggleMute() {
         muted = true;
     }
     audio.setVolume(volume);
+    midi.setVolume(volume);
 }
 
 void seekBy(int seconds) {
     if (!playing) return;
+    if (currentIsMidi()) {
+        setNotice("MIDI seek unavailable", 1500);
+        return;
+    }
     const int32_t duration = audio.getAudioFileDuration();
     const int32_t current = audio.getAudioCurrentTime();
     int32_t target = max<int32_t>(0, current + seconds);
@@ -262,17 +345,19 @@ void drawNowPlaying() {
     else header += "NO TRACKS";
     display.drawStr(2, 7, header.c_str());
 
+    const bool midiTrack = currentIsMidi();
     String mode = repeatText();
     if (shuffleEnabled) mode += " SHF";
-    if (bluetoothAudio.bluetoothRequested()) mode = "BT " + mode;
+    if (midiTrack) mode = String(midi.toneProfileName()) + " " + mode;
     display.drawStr(254 - display.getStrWidth(mode.c_str()), 7, mode.c_str());
 
     display.setFont(u8g2_font_6x10_tf);
     const String title = trackCount ? printableName(tracks[currentTrack]) : String("Put music in /music");
     drawMarquee(title, 2, 24, 252);
 
-    const uint32_t current = playing ? audio.getAudioCurrentTime() : 0;
-    const uint32_t duration = playing ? audio.getAudioFileDuration() : 0;
+    const uint32_t current = playing ? (midiTrack ? midi.currentTime() : audio.getAudioCurrentTime()) : 0;
+    const uint32_t duration = playing
+        ? (midiTrack ? midi.totalDuration() : audio.getAudioFileDuration()) : 0;
     display.drawFrame(2, 31, 252, 7);
     if (duration > 0) {
         const uint16_t progress = min<uint32_t>(250, (current * 250ULL) / duration);
@@ -283,13 +368,15 @@ void drawNowPlaying() {
     String timing = timeText(current) + "/" + (duration ? timeText(duration) : String("--:--"));
     display.drawStr(2, 48, timing.c_str());
     String state;
-    if (bluetoothAudio.bluetoothRequested() && !bluetoothAudio.bluetoothConnected()) state = "WAIT BT";
-    else state = !playing ? "STOP" : (paused ? "PAUSE" : "PLAY");
+    if (!playing) state = "STOP";
+    else if (paused) state = "PAUSE";
+    else if (midiTrack) state = String(midi.tempoBpm()) + "B " + String(midi.activeVoices()) + "V";
+    else state = "PLAY";
     display.drawStr(128 - display.getStrWidth(state.c_str()) / 2, 48, state.c_str());
     String volumeText = muted ? "MUTE" : "VOL " + String(volume);
     display.drawStr(254 - display.getStrWidth(volumeText.c_str()), 48, volumeText.c_str());
 
-    String footer = noticeActive() ? notice : String("ENTER play  TAB list  SHIFT+TAB output");
+    String footer = noticeActive() ? notice : String("ENTER play  TAB playlist");
     if (display.getStrWidth(footer.c_str()) > 252) {
         while (footer.length() && display.getStrWidth(footer.c_str()) > 244) footer.remove(footer.length() - 1);
         footer += "...";
@@ -308,7 +395,7 @@ void drawBrowser() {
 
     if (trackCount == 0) {
         display.setFont(u8g2_font_6x10_tf);
-        display.drawStr(56, 36, "No supported audio files");
+        display.drawStr(51, 36, "No supported audio/MIDI files");
         display.sendBuffer();
         return;
     }
@@ -331,100 +418,15 @@ void drawBrowser() {
     display.sendBuffer();
 }
 
-void drawOutputChoice() {
-    display.clearBuffer();
-    display.setFont(u8g2_font_5x7_tf);
-    display.drawStr(2, 7, "AUDIO OUTPUT");
-    display.drawStr(195, 7, "TAB back");
-
-    const char *dacStatus = bluetoothAudio.bluetoothRequested() ? "READY" : "ACTIVE";
-    String dacLine = String("PCM5102A   ") + dacStatus + "  21/22/15";
-    if (outputCursor == 0) {
-        display.drawBox(0, 12, 256, 11);
-        display.setDrawColor(0);
-    }
-    display.drawStr(3, 20, dacLine.c_str());
-    display.setDrawColor(1);
-
-    String btLine = "Bluetooth   ";
-    btLine += bluetoothAudio.statusText();
-    if (bluetoothAudio.bluetoothConnected()) {
-        btLine += "  Q" + String(bluetoothAudio.bufferPercent()) + "%";
-    }
-    if (outputCursor == 1) {
-        display.drawBox(0, 25, 256, 11);
-        display.setDrawColor(0);
-    }
-    display.drawStr(3, 33, btLine.c_str());
-    display.setDrawColor(1);
-
-    String device = "Device: ";
-    device += bluetoothAudio.targetName();
-    while (device.length() && display.getStrWidth(device.c_str()) > 252) device.remove(device.length() - 1);
-    display.drawStr(2, 47, device.c_str());
-
-    String footer;
-    if (outputCursor == 0) footer = "ENTER use DAC   8/2 select";
-    else if (!bluetoothAudio.bluetoothStarted()) footer = "ENTER start BT scan   8/2 select";
-    else footer = "ENTER use BT  0 change  POWER off";
-    display.drawStr(2, 62, footer.c_str());
-    display.sendBuffer();
-}
-
-void drawBluetoothPicker() {
-    display.clearBuffer();
-    display.setFont(u8g2_font_5x7_tf);
-    String header = "BT DEVICES  ";
-    header += bluetoothAudio.statusText();
-    display.drawStr(2, 7, header.c_str());
-    display.drawStr(210, 7, "TAB back");
-
-    const uint8_t count = bluetoothAudio.deviceCount();
-    if (!count) {
-        display.setFont(u8g2_font_6x10_tf);
-        display.drawStr(42, 29, "Make headphones discoverable");
-        display.setFont(u8g2_font_5x7_tf);
-        display.drawStr(71, 44, "Scanning for audio devices...");
-    } else {
-        constexpr uint8_t visibleRows = 5;
-        if (btDeviceCursor >= count) btDeviceCursor = count - 1;
-        uint8_t first = btDeviceCursor >= visibleRows ? btDeviceCursor - visibleRows + 1 : 0;
-        if (count > visibleRows && first + visibleRows > count) first = count - visibleRows;
-        for (uint8_t row = 0; row < visibleRows && first + row < count; ++row) {
-            const uint8_t index = first + row;
-            BluetoothDeviceInfo device;
-            if (!bluetoothAudio.getDevice(index, device)) continue;
-            const int baseline = 16 + row * 8;
-            if (index == btDeviceCursor) {
-                display.drawBox(0, baseline - 7, 256, 8);
-                display.setDrawColor(0);
-            }
-            String line = String(index + 1) + " " + device.name + "  " + String(device.rssi);
-            while (line.length() && display.getStrWidth(line.c_str()) > 252) line.remove(line.length() - 1);
-            display.drawStr(2, baseline, line.c_str());
-            display.setDrawColor(1);
-        }
-    }
-    display.drawStr(2, 62, count ? "8/2 select  ENTER connect  0 rescan" : "0 restart scan  TAB cancel");
-    display.sendBuffer();
-}
-
-void drawOutput() {
-    if (devicePicker) drawBluetoothPicker();
-    else drawOutputChoice();
-}
-
 void drawPage() {
     if (page == Page::NowPlaying) drawNowPlaying();
-    else if (page == Page::Browser) drawBrowser();
-    else drawOutput();
+    else drawBrowser();
 }
 
 bool installMainFirmware() {
+    midi.stop();
     audio.stopSong();
     playing = false;
-    bluetoothAudio.shutdown();
-    delay(40);
     display.clearBuffer();
     display.setFont(u8g2_font_6x10_tf);
     display.drawStr(52, 14, "Returning to main firmware");
@@ -492,22 +494,41 @@ void handleNowPlayingKey(const PlayerKeyEvent &event) {
             break;
         case PlayerKey::K8: if (!repeat) selectNext(false); break;
         case PlayerKey::K2: if (!repeat) selectNext(true); break;
-        case PlayerKey::K4: seekBy(shift ? -60 : -10); break;
-        case PlayerKey::K6: seekBy(shift ? 60 : 10); break;
+        case PlayerKey::K4:
+            if (currentIsMidi() && shift) {
+                midi.changeTranspose(-1);
+                String text = "MIDI transpose ";
+                if (midi.transpose() >= 0) text += "+";
+                setNotice(text + String(midi.transpose()), 1200);
+            } else seekBy(shift ? -60 : -10);
+            break;
+        case PlayerKey::K6:
+            if (currentIsMidi() && shift) {
+                midi.changeTranspose(1);
+                String text = "MIDI transpose ";
+                if (midi.transpose() >= 0) text += "+";
+                setNotice(text + String(midi.transpose()), 1200);
+            } else seekBy(shift ? 60 : 10);
+            break;
         case PlayerKey::K7: changeVolume(-1); break;
         case PlayerKey::K9: changeVolume(1); break;
         case PlayerKey::Minus: changeVolume(-1); break;
         case PlayerKey::Plus: changeVolume(1); break;
-        case PlayerKey::K1: if (!repeat) cycleRepeat(); break;
+        case PlayerKey::K1:
+            if (!repeat && shift && currentIsMidi()) {
+                midi.cycleToneProfile();
+                setNotice(String("MIDI tone ") + midi.toneProfileName(), 1600);
+            } else if (!repeat && !shift) {
+                cycleRepeat();
+            }
+            break;
         case PlayerKey::Extra: if (!repeat) cycleRepeat(); break;
         case PlayerKey::K3: if (!repeat) shuffleEnabled = !shuffleEnabled; break;
         case PlayerKey::Angle: if (!repeat) shuffleEnabled = !shuffleEnabled; break;
         case PlayerKey::Multiply: if (!repeat) toggleMute(); break;
         case PlayerKey::Tab:
             if (!repeat && shift) {
-                outputCursor = bluetoothAudio.bluetoothRequested() ? 1 : 0;
-                devicePicker = false;
-                page = Page::Output;
+                setNotice("PCM5102A output only", 1600);
             } else if (!repeat) {
                 browserTrack = currentTrack;
                 page = Page::Browser;
@@ -524,9 +545,8 @@ void handleNowPlayingKey(const PlayerKeyEvent &event) {
 void handleBrowserKey(const PlayerKeyEvent &event) {
     const bool shift = keyboard.isDown(PlayerKey::Shift);
     if (event.action == PlayerKeyAction::Press && event.key == PlayerKey::Tab && shift) {
-        outputCursor = bluetoothAudio.bluetoothRequested() ? 1 : 0;
-        devicePicker = false;
-        page = Page::Output;
+        setNotice("PCM5102A output only", 1600);
+        page = Page::NowPlaying;
         return;
     }
     if (event.action == PlayerKeyAction::Release || trackCount == 0) {
@@ -556,116 +576,6 @@ void handleBrowserKey(const PlayerKeyEvent &event) {
     }
 }
 
-void leaveOutputPage() {
-    devicePicker = false;
-    page = Page::NowPlaying;
-}
-
-void handleOutputKey(const PlayerKeyEvent &event) {
-    if (event.action == PlayerKeyAction::Release) return;
-    const bool repeat = event.action == PlayerKeyAction::Repeat;
-
-    if (devicePicker) {
-        const uint8_t count = bluetoothAudio.deviceCount();
-        switch (event.key) {
-            case PlayerKey::K8:
-                if (count) btDeviceCursor = (btDeviceCursor + count - 1) % count;
-                break;
-            case PlayerKey::K2:
-                if (count) btDeviceCursor = (btDeviceCursor + 1) % count;
-                break;
-            case PlayerKey::Enter:
-            case PlayerKey::K5:
-                if (!repeat && count && bluetoothAudio.connectDevice(btDeviceCursor)) {
-                    devicePicker = false;
-                    outputCursor = 1;
-                    setNotice("Connecting selected headphones", 2500);
-                }
-                break;
-            case PlayerKey::K0:
-                if (!repeat) {
-                    btDeviceCursor = 0;
-                    bluetoothAudio.restartDiscovery();
-                }
-                break;
-            case PlayerKey::Tab:
-            case PlayerKey::Backspace:
-            case PlayerKey::Dot:
-                if (!repeat) {
-                    bluetoothAudio.selectDac();
-                    outputCursor = 0;
-                    devicePicker = false;
-                }
-                break;
-            default: break;
-        }
-        return;
-    }
-
-    switch (event.key) {
-        case PlayerKey::K8:
-        case PlayerKey::K2:
-            outputCursor = 1 - outputCursor;
-            break;
-        case PlayerKey::Enter:
-        case PlayerKey::K5:
-            if (repeat) break;
-            if (outputCursor == 0) {
-                bluetoothAudio.selectDac();
-                setNotice("PCM5102A output active", 1800);
-            } else {
-                bluetoothAudio.selectBluetooth();
-                if (!bluetoothAudio.bluetoothConnected() &&
-                    strcmp(bluetoothAudio.targetName(), "No device selected") == 0) {
-                    btDeviceCursor = 0;
-                    devicePicker = true;
-                } else {
-                    setNotice("Bluetooth output selected", 1800);
-                }
-            }
-            break;
-        case PlayerKey::K0:
-            if (!repeat && outputCursor == 1) {
-                btDeviceCursor = 0;
-                bluetoothAudio.restartDiscovery();
-                devicePicker = true;
-            }
-            break;
-        case PlayerKey::Power:
-            if (!repeat) {
-                bluetoothAudio.powerOffBluetooth();
-                outputCursor = 0;
-                setNotice("Bluetooth radio off", 1800);
-            }
-            break;
-        case PlayerKey::Tab:
-        case PlayerKey::Backspace:
-        case PlayerKey::Dot:
-            if (!repeat) leaveOutputPage();
-            break;
-        default: break;
-    }
-}
-
-void handleBluetoothRemote() {
-    switch (bluetoothAudio.takeRemoteCommand()) {
-        case BluetoothRemoteCommand::Play:
-            if (!playing || paused) togglePause();
-            break;
-        case BluetoothRemoteCommand::Pause:
-            if (playing && !paused) togglePause();
-            break;
-        case BluetoothRemoteCommand::Stop:
-            audio.stopSong();
-            bluetoothAudio.clearAudio();
-            playing = false;
-            paused = false;
-            break;
-        case BluetoothRemoteCommand::Previous: selectNext(false); break;
-        case BluetoothRemoteCommand::Next: selectNext(true); break;
-        case BluetoothRemoteCommand::None: break;
-    }
-}
 }
 
 void audio_eof_mp3(const char *info) {
@@ -678,12 +588,42 @@ void audio_info(const char *info) {
     Serial.println(info);
 }
 
-void audio_process_i2s(uint32_t *sample, bool *continueI2S) {
-    *continueI2S = bluetoothAudio.processI2sSample(*sample);
+void pumpMidiAudio() {
+    if (!playing || paused || !currentIsMidi()) return;
+    midi.setVoiceLimit(MidiPlayer::MAX_VOICES);
+
+    constexpr size_t MIDI_BATCH_FRAMES = 256;
+    uint32_t frames[MIDI_BATCH_FRAMES];
+    const uint32_t renderStarted = micros();
+    const size_t frameCount = midi.render(frames, MIDI_BATCH_FRAMES);
+    const uint32_t renderElapsed = micros() - renderStarted;
+    midiRenderMicros += renderElapsed;
+    midiRenderedFrames += frameCount;
+    midiRenderPeakMicros = max(midiRenderPeakMicros, renderElapsed);
+    if (frameCount) {
+        size_t bytesWritten = 0;
+        const size_t bytesRequested = frameCount * sizeof(uint32_t);
+        const esp_err_t result = i2s_write(static_cast<i2s_port_t>(audio.getI2sPort()), frames,
+                                           bytesRequested, &bytesWritten, pdMS_TO_TICKS(20));
+        if (result != ESP_OK || bytesWritten != bytesRequested) ++midiWriteFaults;
+    }
+
+    if (midi.hasError()) {
+        playing = false;
+        paused = false;
+        setNotice(midi.errorText(), 2600);
+    } else if (midi.isFinished()) {
+        endOfTrack = true;
+    }
 }
 
 void setup() {
     Serial.begin(115200);
+    const esp_reset_reason_t resetReason = esp_reset_reason();
+    Serial.printf("Boot reset=%u heap=%u internal=%u largest=%u\n",
+                  static_cast<unsigned>(resetReason), ESP.getFreeHeap(),
+                  heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+                  heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
     pinMode(OLED_CS, OUTPUT);
     pinMode(SD_CS, OUTPUT);
     digitalWrite(OLED_CS, HIGH);
@@ -692,7 +632,6 @@ void setup() {
     display.begin();
     display.setContrast(220);
     keyboard.begin();
-    bluetoothAudio.begin();
 
     display.clearBuffer();
     display.setFont(u8g2_font_6x10_tf);
@@ -719,14 +658,19 @@ void setup() {
     } else {
         setNotice("No audio in /music", 5000);
     }
+    if (const char *resetText = resetReasonText(resetReason)) {
+        setNotice(String("Last reset: ") + resetText, 6000);
+    }
     drawPage();
 }
 
 void loop() {
-    bluetoothAudio.setInputSampleRate(audio.getSampleRate());
-    if (!bluetoothAudio.bluetoothRequested() || bluetoothAudio.bluetoothConnected()) audio.loop();
+    if (currentIsMidi()) {
+        pumpMidiAudio();
+    } else {
+        audio.loop();
+    }
     keyboard.update();
-    handleBluetoothRemote();
 
     if (keyboard.isDown(PlayerKey::Escape) && keyboard.heldMs(PlayerKey::Escape) >= EXIT_HOLD_MS) {
         if (!exitTriggered) {
@@ -741,19 +685,47 @@ void loop() {
     while (keyboard.nextEvent(event)) {
         if (event.key == PlayerKey::Escape || event.key == PlayerKey::Shift) continue;
         if (page == Page::NowPlaying) handleNowPlayingKey(event);
-        else if (page == Page::Browser) handleBrowserKey(event);
-        else handleOutputKey(event);
+        else handleBrowserKey(event);
     }
 
     if (endOfTrack) handleTrackEnd();
     if (notice.length() && !noticeActive()) notice = "";
 
     const uint32_t now = millis();
+    if (playing && currentIsMidi() && now - lastMidiDiagnostics >= 5000) {
+        lastMidiDiagnostics = now;
+        const uint32_t limiterHits = midi.takeLimiterHits();
+        const uint32_t voiceSteals = midi.takeVoiceSteals();
+        const uint32_t mergedNoteOns = midi.takeMergedNoteOns();
+        const uint32_t droppedNoteOns = midi.takeDroppedNoteOns();
+        const uint32_t sustainVoiceSteals = midi.takeSustainVoiceSteals();
+        const uint32_t heldVoiceSteals = midi.takeHeldVoiceSteals();
+        if ((heldVoiceSteals || droppedNoteOns) && !midiPolyphonyWarningShown) {
+            midiPolyphonyWarningShown = true;
+            setNotice("MIDI polyphony limit", 2400);
+        }
+        const uint32_t loadPermille = midiRenderedFrames
+            ? static_cast<uint32_t>((midiRenderMicros * MidiPlayer::SAMPLE_RATE * 1000ULL) /
+                                    (static_cast<uint64_t>(midiRenderedFrames) * 1000000ULL))
+            : 0;
+        Serial.printf("MIDI perf load=%u.%u%% peak=%uus limiter=%u merged=%u drop=%u reuse=%u sustain=%u held=%u voices=%u i2s=%u heap=%u\n",
+                      loadPermille / 10, loadPermille % 10, midiRenderPeakMicros,
+                      limiterHits, mergedNoteOns, droppedNoteOns, voiceSteals,
+                      sustainVoiceSteals, heldVoiceSteals,
+                      midi.activeVoices(), midiWriteFaults,
+                      ESP.getFreeHeap());
+        midiRenderMicros = 0;
+        midiRenderedFrames = 0;
+        midiRenderPeakMicros = 0;
+        midiWriteFaults = 0;
+    }
     if (page == Page::NowPlaying && now - lastMarqueeStep >= 250) {
         lastMarqueeStep = now;
         ++marqueeOffset;
     }
-    if (now - lastDraw >= DISPLAY_INTERVAL_MS) {
+    const uint32_t displayInterval = currentIsMidi() && midi.activeVoices() >= MidiPlayer::MAX_VOICES
+        ? MIDI_BUSY_DISPLAY_INTERVAL_MS : DISPLAY_INTERVAL_MS;
+    if (now - lastDraw >= displayInterval) {
         lastDraw = now;
         drawPage();
     }
