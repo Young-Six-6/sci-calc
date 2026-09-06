@@ -59,10 +59,15 @@ Improved graph rendering and added a standalone PCM5102A music player.
 v1.8
 Integrated Bluetooth headphone output into the music player and expanded both OTA application slots.
 
+v1.9
+Added a standalone Wi-Fi SD card manager with a mobile web interface.
+
+v1.10
+Protected the Wi-Fi SD manager with a rotating six-digit physical-access code.
 
 */
 
-const std::string VERSION = "1.8";
+const std::string VERSION = "1.10";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

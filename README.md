@@ -58,6 +58,7 @@ Macros and layers are very easy to create in code (see firmware), and I'm planni
 ### Programs
 
 It is possible to upload your own code to the sci-calc by copying the .bin file that you compiled onto the SD card and creating a menu link to it in the main firmware code (see firmware), but this is kinda complicated and I'm trying to make it automatically create the link.
+
 It's pretty easy to port code over to the sci-calc, just copy the Util.h, Util.cpp, Keyboard.h, Keyboard.cpp files over to your project and change the input checking functions.
 Currently I've ported littlerookchess, spacetrash, snake, and tetris to it.
 
@@ -76,6 +77,9 @@ Currently I've ported littlerookchess, spacetrash, snake, and tetris to it.
 
 # Updating Software
 [Updating Software](docs/updating_software.md)
+
+# Wi-Fi SD Manager
+[Wi-Fi SD Manager](docs/sd_manager.md)
 
 # Setting up the Dev Environment
 [Environment Setup](docs/environment_setup.md)

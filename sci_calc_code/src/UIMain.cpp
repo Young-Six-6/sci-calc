@@ -123,6 +123,7 @@ EquationSolver equationSolver(0, 0, 210, 64);
 Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
     new Text("Graph Calc"),
     new Text("Music Player"),
+    new Text("SD Manager"),
     new Text("Chess"),
     new Text("Spacetrash"),
     new Text("Snake"),
@@ -134,6 +135,7 @@ Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
 {
     new BinLink("/graphcalc.bin"),
     new BinLink("/music.bin"),
+    new BinLink("/sdmanager.bin"),
     new BinLink("/chess.bin"),
     new BinLink("/spacetrash.bin"),
     new BinLink("/snake.bin"),
