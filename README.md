@@ -81,6 +81,9 @@ Currently I've ported littlerookchess, spacetrash, snake, and tetris to it.
 # Wi-Fi SD Manager
 [Wi-Fi SD Manager](docs/sd_manager.md)
 
+# USB Serial Display
+[USB Serial Display](docs/usb_display.md)
+
 # Setting up the Dev Environment
 [Environment Setup](docs/environment_setup.md)
 

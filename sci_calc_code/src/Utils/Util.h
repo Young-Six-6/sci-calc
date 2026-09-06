@@ -65,9 +65,12 @@ Added a standalone Wi-Fi SD card manager with a mobile web interface.
 v1.10
 Protected the Wi-Fi SD manager with a rotating six-digit physical-access code.
 
+v1.11
+Added a standalone USB serial display for PC telemetry and monochrome video.
+
 */
 
-const std::string VERSION = "1.10";
+const std::string VERSION = "1.11";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;
