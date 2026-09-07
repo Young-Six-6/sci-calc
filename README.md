@@ -84,6 +84,9 @@ Currently I've ported littlerookchess, spacetrash, snake, and tetris to it.
 # USB Serial Display
 [USB Serial Display](docs/usb_display.md)
 
+# Maze
+[Maze Game](games/Maze/README.md)
+
 # Setting up the Dev Environment
 [Environment Setup](docs/environment_setup.md)
 
