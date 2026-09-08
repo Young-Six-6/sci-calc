@@ -26,6 +26,7 @@ class Menu : public UIElement {
         void aniOut();
 
         void insertElement(UIElement* targetElement, UIElement* linkElement);
+        void appendElement(UIElement* targetElement, UIElement* linkElement);
 
         bool moveCursorUp();
         bool moveCursorDown();

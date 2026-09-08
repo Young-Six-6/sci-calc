@@ -86,13 +86,13 @@ Copy maze.bin and the latest main.bin to the root of the SD card.
 
 将 maze.bin 和最新版 main.bin 复制到 SD 卡根目录。
 
-Install the v1.12 main firmware, then open Programs and select Maze.
+Install the v1.13 main firmware, then open Programs and select Maze.
 
-安装 v1.12 主固件，然后进入 Programs 并选择 Maze。
+安装 v1.13 主固件，然后进入 Programs 并选择 Maze。
 
-For a complete USB reinstall, flash sci_calc_code/bin/sci-calc-full-1.12-min-spiffs.bin at address 0x0.
+For a complete USB reinstall, flash sci_calc_code/bin/sci-calc-full-1.13-min-spiffs.bin at address 0x0.
 
-如果需要通过 USB 完整重装，请将 sci_calc_code/bin/sci-calc-full-1.12-min-spiffs.bin 刷写到地址 0x0。
+如果需要通过 USB 完整重装，请将 sci_calc_code/bin/sci-calc-full-1.13-min-spiffs.bin 刷写到地址 0x0。
 
 ## Build
 ## 构建

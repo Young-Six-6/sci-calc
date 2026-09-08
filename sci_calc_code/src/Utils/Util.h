@@ -71,9 +71,12 @@ Added a standalone USB serial display for PC telemetry and monochrome video.
 v1.12
 Added a standalone procedurally generated maze game.
 
+v1.13
+Added manifest-only SD application discovery with explicit display names.
+
 */
 
-const std::string VERSION = "1.12";
+const std::string VERSION = "1.13";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

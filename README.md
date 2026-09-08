@@ -57,7 +57,13 @@ Macros and layers are very easy to create in code (see firmware), and I'm planni
 
 ### Programs
 
-It is possible to upload your own code to the sci-calc by copying the .bin file that you compiled onto the SD card and creating a menu link to it in the main firmware code (see firmware), but this is kinda complicated and I'm trying to make it automatically create the link.
+Version 1.13 can discover additional SD applications from explicit /apps/*.app manifests without listing raw .bin files.
+
+1.13 版可以通过明确的 /apps/*.app 清单自动发现额外 SD 应用，不会列出裸 .bin 文件。
+
+Every menu label comes only from the manifest's name field and is never inferred from a firmware filename.
+
+每个菜单显示名只来自清单的 name 字段，绝不会从固件文件名推断。
 
 It's pretty easy to port code over to the sci-calc, just copy the Util.h, Util.cpp, Keyboard.h, Keyboard.cpp files over to your project and change the input checking functions.
 Currently I've ported littlerookchess, spacetrash, snake, and tetris to it.
@@ -86,6 +92,9 @@ Currently I've ported littlerookchess, spacetrash, snake, and tetris to it.
 
 # Maze
 [Maze Game](games/Maze/README.md)
+
+# SD Application Discovery
+[SD Application Discovery](docs/sd_apps.md)
 
 # Setting up the Dev Environment
 [Environment Setup](docs/environment_setup.md)

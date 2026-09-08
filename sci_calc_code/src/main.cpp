@@ -3,6 +3,7 @@
 //#include <U8x8lib.h>
 
 #include "UIMain.h"
+#include "Utils/AppDiscovery.h"
 
 
 
@@ -32,6 +33,7 @@ void init() {
         rebootEspWithReason("No SD_MMC card attached");
     }
     pinMode(36, INPUT);
+    discoverSdApplications(programMenu);
     initFromFile();
     Serial.println("sci-calc init!");
 }

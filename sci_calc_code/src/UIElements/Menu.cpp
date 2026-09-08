@@ -282,3 +282,10 @@ void Menu::update() {
     draw();
     this -> cursor.draw();
 }
+
+void Menu::appendElement(UIElement* targetElement, UIElement* linkElement) {
+    if (targetElement == nullptr) return;
+    this -> subElements.push_back(targetElement);
+    this -> linkElements.push_back(linkElement);
+    if (linkElement != nullptr) linkElement -> setParent(this);
+}
