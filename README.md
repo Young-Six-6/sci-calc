@@ -61,6 +61,10 @@ Version 1.13 can discover additional SD applications from explicit /apps/*.app m
 
 1.13 版可以通过明确的 /apps/*.app 清单自动发现额外 SD 应用，不会列出裸 .bin 文件。
 
+Version 1.14 adds a standalone CHIP-8 and SUPER-CHIP emulator with an SD ROM library, three compatibility profiles, adjustable speed, and a complete hexadecimal keypad mapping.
+
+1.14 版新增独立 CHIP-8 与 SUPER-CHIP 模拟器，支持 SD ROM 库、三种兼容配置、可调速度和完整十六进制键盘映射。
+
 Every menu label comes only from the manifest's name field and is never inferred from a firmware filename.
 
 每个菜单显示名只来自清单的 name 字段，绝不会从固件文件名推断。
@@ -92,6 +96,9 @@ Currently I've ported littlerookchess, spacetrash, snake, and tetris to it.
 
 # Maze
 [Maze Game](games/Maze/README.md)
+
+# Super-CHIP Emulator
+[Super-CHIP Emulator](games/SuperChip/README.md)
 
 # SD Application Discovery
 [SD Application Discovery](docs/sd_apps.md)

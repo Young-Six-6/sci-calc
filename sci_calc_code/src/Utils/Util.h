@@ -74,9 +74,12 @@ Added a standalone procedurally generated maze game.
 v1.13
 Added manifest-only SD application discovery with explicit display names.
 
+v1.14
+Added a standalone CHIP-8 and SUPER-CHIP emulator with an SD ROM library.
+
 */
 
-const std::string VERSION = "1.13";
+const std::string VERSION = "1.14";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

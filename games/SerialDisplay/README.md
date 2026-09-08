@@ -16,13 +16,13 @@ Copy sci_calc_code/bin/main.bin and sci_calc_code/bin/serialdisplay.bin to the S
 
 将 sci_calc_code/bin/main.bin 与 sci_calc_code/bin/serialdisplay.bin 复制到 SD 卡根目录。
 
-Main firmware version 1.13 includes USB Display in the Programs menu.
+Main firmware version 1.14 includes USB Display in the Programs menu.
 
-主固件 1.13 版包含 Programs 菜单中的 USB Display。
+主固件 1.14 版包含 Programs 菜单中的 USB Display。
 
-For a complete USB reinstall, flash sci_calc_code/bin/sci-calc-full-1.13-min-spiffs.bin at address 0x0.
+For a complete USB reinstall, flash sci_calc_code/bin/sci-calc-full-1.14-min-spiffs.bin at address 0x0.
 
-如果需要通过 USB 完整重装，请将 sci_calc_code/bin/sci-calc-full-1.13-min-spiffs.bin 刷写到地址 0x0。
+如果需要通过 USB 完整重装，请将 sci_calc_code/bin/sci-calc-full-1.14-min-spiffs.bin 刷写到地址 0x0。
 
 Open USB Display before starting the computer client.
 
