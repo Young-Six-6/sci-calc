@@ -1,114 +1,50 @@
 # SCI-CALC Maze
-# SCI-CALC 迷宫
 
-Maze is a standalone game for the 256 by 64 SCI-CALC OLED.
+[Chinese](README_CH.md)
 
-迷宫是面向 SCI-CALC 256×64 OLED 的独立游戏。
+Maze is a standalone game for the SCI-CALC 256x64 OLED. Move the ball from the upper-left cell to the lower-right cell to complete each level.
 
-The player starts in the upper-left cell and clears the level by reaching the lower-right cell.
-
-玩家从左上角格子出发，到达右下角格子即可过关。
-
-Every clear automatically advances to a newly generated level.
-
-每次过关都会自动进入新生成的关卡。
-
-Difficulty rises automatically by requiring a longer and less straight solution after each clear.
-
-难度会自动提升，每次过关后都会要求正确路线更长、直线段更短。
+Every completed level starts a newly generated maze automatically. The route becomes longer and uses shorter straight sections as the level increases.
 
 ## Controls
-## 操作
 
-Use 8, 2, 4, and 6 to move up, down, left, and right.
+| Key | Action |
+| --- | --- |
+| `8` | Move up |
+| `2` | Move down |
+| `4` | Move left |
+| `6` | Move right |
+| Hold a direction | Continue moving through an open passage |
+| `5` | Replace the current level with a new maze |
+| `0` | Show or hide trail dots |
+| Hold `ESC` for one second | Restore `/main.bin` and return to the calculator |
 
-使用 8、2、4、6 分别向上、向下、向左、向右移动。
+Movement is accepted only when no wall blocks the selected direction.
 
-Hold a movement key to move repeatedly through a corridor.
+## Levels
 
-长按方向键可以在通道中连续移动。
+- Every level is a 32x8 maze and always has a route from start to finish.
+- The first level requires a solution of at least 80 steps.
+- The required route length increases by four steps per level, up to 156 steps.
+- The longest allowed straight part gradually decreases from ten cells to five.
+- Accepted solution routes use all four directions, preventing a level from being solved by holding only one key.
+- The latest 256 level layouts are remembered while the game is running so immediate repeats can be regenerated.
 
-Press 5 to replace the current level with another new maze.
+## Install
 
-按 5 可以用另一张新迷宫替换当前关卡。
+1. Copy [`../../sci_calc_code/bin/maze.bin`](../../sci_calc_code/bin/maze.bin) to the SD-card root as `/maze.bin`.
+2. Copy the current [`../../sci_calc_code/bin/main.bin`](../../sci_calc_code/bin/main.bin) to the SD-card root as `/main.bin`.
+3. Open `Programs > Games > Maze`.
 
-Press 0 to show or hide breadcrumb dots.
+For a complete USB installation, flash [`../../sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin) at address `0x0`.
 
-按 0 可以显示或隐藏足迹点。
-
-Hold ESC for one second to reinstall /main.bin from the SD card and return to the calculator.
-
-长按 ESC 一秒会从 SD 卡安装 /main.bin 并返回计算器。
-
-## Generation and rules
-## 生成与规则
-
-Each level is a 32 by 8 perfect maze produced by an iterative randomized depth-first search.
-
-每关都是通过迭代式随机深度优先搜索生成的 32×8 完美迷宫。
-
-All 256 cells belong to one connected spanning tree, so the finish is always reachable and there are no isolated regions.
-
-全部 256 个格子构成一棵连通生成树，因此终点始终可达，也不会出现孤立区域。
-
-The firmware performs a breadth-first connectivity check after generation before accepting a level.
-
-固件会在生成后执行广度优先连通性检查，确认通过后才接受该关卡。
-
-The minimum solution starts at 80 moves, increases by four moves per level, and reaches a cap of 156 moves.
-
-最短正确路线从 80 步开始，每关增加 4 步，最高达到 156 步。
-
-The longest permitted straight section gradually falls from ten cells to five cells.
-
-正确路线允许的最长直线段会从十格逐渐降到五格。
-
-Every accepted solution must use all four movement directions, preventing a right-only or monotonic route.
-
-每条被接受的正确路线都必须使用四个移动方向，从而杜绝只按右键或单调移动的路线。
-
-Fingerprints for the latest 256 levels are retained in RAM and duplicate candidates are regenerated.
-
-最近 256 关的指纹会保存在 RAM 中，候选关卡重复时会重新生成。
-
-A hardware random seed makes repetition across restarts extremely unlikely.
-
-硬件随机种子使重启后的关卡重复概率也极低。
-
-Movement is accepted only when the current cell has no wall in the requested direction.
-
-只有当前格在目标方向没有墙时，移动才会被接受。
-
-## Installation
-## 安装
-
-Copy maze.bin and the latest main.bin to the root of the SD card.
-
-将 maze.bin 和最新版 main.bin 复制到 SD 卡根目录。
-
-Install the v1.15 main firmware, then open Programs > Games and select Maze.
-
-安装 v1.15 主固件，然后进入 Programs > Games 并选择 Maze。
-
-For a complete USB reinstall, flash sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin at address 0x0.
-
-如果需要通过 USB 完整重装，请将 sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin 刷写到地址 0x0。
-
-## Build
-## 构建
-
-Run the following command from this directory.
-
-在本目录运行以下命令。
+## Build and test
 
 ```powershell
-pio run
+cd games\Maze
+& "$env:USERPROFILE\.platformio\penv\Scripts\platformio.exe" run
+python -m unittest discover -s tests -v
+Copy-Item .pio\build\maze\firmware.bin ..\..\sci_calc_code\bin\maze.bin -Force
 ```
 
-The output application image is .pio/build/maze/firmware.bin.
-
-输出的应用镜像位于 .pio/build/maze/firmware.bin。
-
-The game uses fixed-size buffers and does not require PSRAM.
-
-游戏只使用固定大小缓冲区，不需要 PSRAM。
+The resulting `maze.bin` is installed through the calculator's application loader. Use the merged full image for flashing at address `0x0`.
