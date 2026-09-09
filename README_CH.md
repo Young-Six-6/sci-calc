@@ -29,9 +29,9 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 
 ## 安装与更新
 
-当前主固件版本为 1.15。
+当前主固件版本为 1.16。
 
-如需通过 USB 完整安装，请将 [`sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin) 刷写到地址 `0x0`。
+如需通过 USB 完整安装，请将 [`sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin) 刷写到地址 `0x0`。
 
 通过 SD 卡更新：
 

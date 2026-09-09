@@ -5,13 +5,13 @@ The standalone manager is built from games/SDManager and published as sci_calc_c
 
 独立管理器由 games/SDManager 构建，并发布为 sci_calc_code/bin/sdmanager.bin。
 
-Copy both the version 1.15 main.bin and sdmanager.bin from sci_calc_code/bin to the SD-card root before opening it from Programs > Tools > SD Manager.
+Copy both the version 1.16 main.bin and sdmanager.bin from sci_calc_code/bin to the SD-card root before opening it from Programs > Tools > SD Manager.
 
-从 Programs > Tools > SD Manager 打开管理器之前，请把 sci_calc_code/bin 中 1.15 版 main.bin 与 sdmanager.bin 一同复制到 SD 卡根目录。
+从 Programs > Tools > SD Manager 打开管理器之前，请把 sci_calc_code/bin 中 1.16 版 main.bin 与 sdmanager.bin 一同复制到 SD 卡根目录。
 
-The merged sci-calc-full-1.15-min-spiffs.bin image is available for a complete USB reinstall at flash address 0x0.
+The merged sci-calc-full-1.16-min-spiffs.bin image is available for a complete USB reinstall at flash address 0x0.
 
-合并镜像 sci-calc-full-1.15-min-spiffs.bin 可用于通过 USB 在 Flash 地址 0x0 完整重装。
+合并镜像 sci-calc-full-1.16-min-spiffs.bin 可用于通过 USB 在 Flash 地址 0x0 完整重装。
 
 It provides an offline browser interface at http://192.168.4.1 over the calculator's own WPA2 access point.
 

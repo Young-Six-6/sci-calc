@@ -233,7 +233,7 @@ void Menu::enter() {
 }
 
 void Menu::draw() {
-    //u8g2.setClipWindow(this -> x, this -> y, this -> width, this -> height);
+    u8g2.setClipWindow(0, 0, MAIN_PANEL_WIDTH, HEIGHT);
     int drawX = constrain(this -> x, 0, WIDTH);
     int drawY = constrain(this -> y, 0, HEIGHT);
     u8g2.drawRFrame(drawX, drawY, constrain(this -> width + (this -> x - drawX), 0, WIDTH), constrain(this -> height + (this -> y - drawY), 0, HEIGHT), 3);
@@ -242,7 +242,7 @@ void Menu::draw() {
         subElements[i] -> draw();
     }
     drawScrollBar();
-    u8g2.setClipWindow(0, 0, 256, 64);
+    u8g2.setMaxClipWindow();
 }
 
 
@@ -285,7 +285,9 @@ void Menu::update() {
 
 
     draw();
+    u8g2.setClipWindow(0, 0, MAIN_PANEL_WIDTH, HEIGHT);
     this -> cursor.draw();
+    u8g2.setMaxClipWindow();
 }
 
 void Menu::appendElement(UIElement* targetElement, UIElement* linkElement) {

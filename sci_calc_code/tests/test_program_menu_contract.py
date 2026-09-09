@@ -8,6 +8,8 @@ UI_SOURCE = (ROOT / "src" / "UIMain.cpp").read_text(encoding="utf-8")
 UI_HEADER = (ROOT / "src" / "UIMain.h").read_text(encoding="utf-8")
 MAIN_SOURCE = (ROOT / "src" / "main.cpp").read_text(encoding="utf-8")
 MENU_SOURCE = (ROOT / "src" / "UIElements" / "Menu.cpp").read_text(encoding="utf-8")
+SIDEBAR_HEADER = (ROOT / "src" / "Sidebar.h").read_text(encoding="utf-8")
+SIDEBAR_SOURCE = (ROOT / "src" / "Sidebar.cpp").read_text(encoding="utf-8")
 
 
 def menu_block(name):
@@ -82,6 +84,18 @@ class ProgramMenuContractTests(unittest.TestCase):
             MENU_SOURCE,
             r"key == std::make_pair\(0, 0\).*key == std::make_pair\(2, 0\)",
         )
+
+    def test_menu_animation_is_clipped_before_the_sidebar(self):
+        clip = "u8g2.setClipWindow(0, 0, MAIN_PANEL_WIDTH, HEIGHT);"
+        self.assertIn("constexpr int MAIN_PANEL_WIDTH = 210;", SIDEBAR_HEADER)
+        self.assertGreaterEqual(MENU_SOURCE.count(clip), 2)
+        self.assertGreaterEqual(MENU_SOURCE.count("u8g2.setMaxClipWindow();"), 2)
+
+        clear = "u8g2.drawBox(MAIN_PANEL_WIDTH, 0, WIDTH - MAIN_PANEL_WIDTH, HEIGHT);"
+        frame = "u8g2.drawRFrame(SIDEBAR_LEFT, 0, SIDEBAR_WIDTH, HEIGHT, 2);"
+        self.assertIn(clear, SIDEBAR_SOURCE)
+        self.assertIn(frame, SIDEBAR_SOURCE)
+        self.assertLess(SIDEBAR_SOURCE.index(clear), SIDEBAR_SOURCE.index(frame))
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ USB Display 可将计算器的 256x64 OLED 变为电脑驱动的小屏幕，用�
 2. 将当前 [`../../sci_calc_code/bin/main.bin`](../../sci_calc_code/bin/main.bin) 复制到 SD 卡根目录，保存为 `/main.bin`。
 3. 启动电脑客户端之前，先进入 `Programs > Tools > USB Display`。
 
-如需通过 USB 完整安装，请将 [`../../sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin) 刷写到地址 `0x0`。
+如需通过 USB 完整安装，请将 [`../../sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin) 刷写到地址 `0x0`。
 
 ## 设置电脑
 
