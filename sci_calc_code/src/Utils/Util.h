@@ -77,9 +77,12 @@ Added manifest-only SD application discovery with explicit display names.
 v1.14
 Added a standalone CHIP-8 and SUPER-CHIP emulator with an SD ROM library.
 
+v1.15
+Grouped standalone programs into expandable category menus with directional navigation.
+
 */
 
-const std::string VERSION = "1.14";
+const std::string VERSION = "1.15";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

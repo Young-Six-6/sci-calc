@@ -36,9 +36,9 @@ order=100
 enabled=true
 ```
 
-Restart the calculator and open Programs; Unit Converter appears after the built-in entries.
+Restart the calculator and open Programs, then Other; Unit Converter appears after the built-in entries.
 
-重启计算器并打开 Programs；Unit Converter 会出现在内置项目之后。
+重启计算器并依次打开 Programs 与 Other；Unit Converter 会出现在内置项目之后。
 
 Removing or disabling the descriptor removes the menu item after the next restart without deleting the application firmware.
 

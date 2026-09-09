@@ -33,7 +33,7 @@ void init() {
         rebootEspWithReason("No SD_MMC card attached");
     }
     pinMode(36, INPUT);
-    discoverSdApplications(programMenu);
+    discoverSdApplications(programOtherMenu);
     initFromFile();
     Serial.println("sci-calc init!");
 }

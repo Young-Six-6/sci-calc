@@ -120,11 +120,14 @@ Calculator calcMain(0, 0, 210, 64, &calcMenu, &expressionInput);
 CalculatorRPN calcRPN(0, 0, 210, 64);
 EquationSolver equationSolver(0, 0, 210, 64);
 
-Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
+Menu programCalculationMenu(220, 0, 0, 0, 210, 64, 4, {
     new Text("Graph Calc"),
-    new Text("Music Player"),
-    new Text("SD Manager"),
-    new Text("USB Display"),
+},
+{
+    new BinLink("/graphcalc.bin"),
+});
+
+Menu programGameMenu(220, 0, 0, 0, 210, 64, 4, {
     new Text("Maze"),
     new Text("Super-CHIP"),
     new Text("Chess"),
@@ -133,13 +136,8 @@ Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
     new Text("Tetris"),
     new Text("Catacombs of the damned"),
     new Text("Squario"),
-    new Text("Wifi Rickroll")
 },
 {
-    new BinLink("/graphcalc.bin"),
-    new BinLink("/music.bin"),
-    new BinLink("/sdmanager.bin"),
-    new BinLink("/serialdisplay.bin"),
     new BinLink("/maze.bin"),
     new BinLink("/chip8.bin"),
     new BinLink("/chess.bin"),
@@ -148,8 +146,45 @@ Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
     new BinLink("/tetris.bin"),
     new BinLink("/COTD.bin"),
     new BinLink("/squario.bin"),
+});
+
+Menu programMusicMenu(220, 0, 0, 0, 210, 64, 4, {
+    new Text("Music Player"),
+},
+{
+    new BinLink("/music.bin"),
+});
+
+Menu programToolMenu(220, 0, 0, 0, 210, 64, 4, {
+    new Text("SD Manager"),
+    new Text("USB Display"),
+},
+{
+    new BinLink("/sdmanager.bin"),
+    new BinLink("/serialdisplay.bin"),
+});
+
+Menu programOtherMenu(220, 0, 0, 0, 210, 64, 4, {
+    new Text("Wifi Rickroll")
+},
+{
     new BinLink("/wifirickroll.bin")
 });
+
+Menu programMenu(0, -70, 0, 0, 210, 64, 4, {
+    new Text("Calculation >"),
+    new Text("Games >"),
+    new Text("Music >"),
+    new Text("Tools >"),
+    new Text("Other >")
+},
+{
+    &programCalculationMenu,
+    &programGameMenu,
+    &programMusicMenu,
+    &programToolMenu,
+    &programOtherMenu
+}, true);
 
 Menu stopwatchMenu(0, -70, 0, 0, 110, 64, 4);
 

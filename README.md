@@ -65,6 +65,14 @@ Version 1.14 adds a standalone CHIP-8 and SUPER-CHIP emulator with an SD ROM lib
 
 1.14 版新增独立 CHIP-8 与 SUPER-CHIP 模拟器，支持 SD ROM 库、三种兼容配置、可调速度和完整十六进制键盘映射。
 
+Version 1.15 groups Programs into Calculation, Games, Music, Tools, and Other submenus.
+
+1.15 版将 Programs 分为 Calculation、Games、Music、Tools 与 Other 五个二级菜单。
+
+Press Right or Enter to open a category, and press Left or ESC to return to its parent menu.
+
+按右方向或 Enter 展开分类，按左方向或 ESC 返回上一级菜单。
+
 Every menu label comes only from the manifest's name field and is never inferred from a firmware filename.
 
 每个菜单显示名只来自清单的 name 字段，绝不会从固件文件名推断。

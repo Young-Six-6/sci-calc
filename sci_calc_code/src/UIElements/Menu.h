@@ -16,7 +16,7 @@ class Menu : public UIElement {
         Menu();
 
         Menu(int restX, int restY, int activeX, int activeY, int width, int height, int menuSize);
-        Menu(int restX, int restY, int activeX, int activeY, int width, int height, int menuSize, std::vector <UIElement*> subElements, std::vector <UIElement*> linkElements);
+        Menu(int restX, int restY, int activeX, int activeY, int width, int height, int menuSize, std::vector <UIElement*> subElements, std::vector <UIElement*> linkElements, bool openWithRight = false);
 
         void init();
         void activate();
@@ -58,6 +58,7 @@ class Menu : public UIElement {
         int cursorPos, menuPos;
         int restX, restY, activeX, activeY;
         int menuSize;
+        bool openWithRight;
         Cursor cursor;
         Box scrollBar;
         std::vector <UIElement*> linkElements;

@@ -197,17 +197,17 @@ The resulting application image is `.pio/build/superchip/firmware.bin`.
 
 生成的应用镜像位于 `.pio/build/superchip/firmware.bin`。
 
-For normal SD installation, copy the released `sci_calc_code/bin/chip8.bin` and version 1.14 `sci_calc_code/bin/main.bin` to the SD-card root.
+For normal SD installation, copy the released `sci_calc_code/bin/chip8.bin` and version 1.15 `sci_calc_code/bin/main.bin` to the SD-card root.
 
-正常通过 SD 安装时，请把发布的 `sci_calc_code/bin/chip8.bin` 与 1.14 版 `sci_calc_code/bin/main.bin` 放到 SD 卡根目录。
+正常通过 SD 安装时，请把发布的 `sci_calc_code/bin/chip8.bin` 与 1.15 版 `sci_calc_code/bin/main.bin` 放到 SD 卡根目录。
 
-Open `Programs`, select `Super-CHIP`, and allow the calculator to install the standalone image.
+Open `Programs > Games`, select `Super-CHIP`, and allow the calculator to install the standalone image.
 
-进入 `Programs`，选择 `Super-CHIP`，然后让计算器安装独立镜像。
+进入 `Programs > Games`，选择 `Super-CHIP`，然后让计算器安装独立镜像。
 
-For a complete USB reinstall, flash `sci_calc_code/bin/sci-calc-full-1.14-min-spiffs.bin` at address `0x0`.
+For a complete USB reinstall, flash `sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin` at address `0x0`.
 
-如需通过 USB 完整重装，请把 `sci_calc_code/bin/sci-calc-full-1.14-min-spiffs.bin` 刷写到地址 `0x0`。
+如需通过 USB 完整重装，请把 `sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin` 刷写到地址 `0x0`。
 
 ## Core And License
 

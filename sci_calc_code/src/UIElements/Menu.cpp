@@ -3,12 +3,14 @@
 Menu::Menu() : UIElement() {
     this -> menuPos = 0;
     this -> cursorPos = 0;
+    this -> openWithRight = false;
 }
 
 Menu::Menu(int restX, int restY, int activeX, int activeY, int width, int height, int menuSize) : UIElement(restX, restY, width, height) {
     this -> menuSize = menuSize;
     this -> menuPos = 0;
     this -> cursorPos = 0;
+    this -> openWithRight = false;
     this -> restX = restX;
     this -> restY = restY;
     this -> activeX = activeX;
@@ -26,11 +28,12 @@ Menu::Menu(int restX, int restY, int activeX, int activeY, int width, int height
     }
 }
 
-Menu::Menu(int restX, int restY, int activeX, int activeY, int width, int height, int menuSize, std::vector <UIElement*> subElements, std::vector <UIElement*> linkElements) : UIElement(restX, restY, width, height, subElements) {
+Menu::Menu(int restX, int restY, int activeX, int activeY, int width, int height, int menuSize, std::vector <UIElement*> subElements, std::vector <UIElement*> linkElements, bool openWithRight) : UIElement(restX, restY, width, height, subElements) {
     this -> menuSize = menuSize;
     this -> menuPos = 0;
     this -> cursorPos = 0;
     this -> linkElements = linkElements;
+    this -> openWithRight = openWithRight;
     this -> restX = restX;
     this -> restY = restY;
     this -> activeX = activeX;
@@ -247,20 +250,22 @@ void Menu::draw() {
 void Menu::update() {
     //Serial.printf("cursorPos: %d, menuPos: %d/n", this -> cursorPos, this -> menuPos);
     //Serial.printf("key: [%d][%d]\n", kb.getRisingEdgeKey().first, kb.getRisingEdgeKey().second);
+    const std::pair<int, int> key = kb.getRisingEdgeKey();
+    const bool confirm = key == std::make_pair(3, 3)
+        || (this -> openWithRight && key == std::make_pair(2, 2));
     if (this -> getSize() > 0) {
-        if (kb.getRisingEdgeKey() == std::make_pair(1, 1)) {
+        if (key == std::make_pair(1, 1)) {
             //Serial.printf("UP\n");
             scrollUp();
-        }
-        if (kb.getRisingEdgeKey() == std::make_pair(3, 1)) {
+        } else if (key == std::make_pair(3, 1)) {
             //Serial.printf("down\n");
             scrollDown();
-        }
-        if (kb.getRisingEdgeKey() == std::make_pair(3, 3)) {
+        } else if (confirm) {
             enter();
         }
     }
-    if (kb.getRisingEdgeKey() == std::make_pair(0, 0) && this -> parentElement != this && this -> parentElement != nullptr) {
+    const bool collapse = key == std::make_pair(0, 0) || key == std::make_pair(2, 0);
+    if (collapse && this -> parentElement != this && this -> parentElement != nullptr) {
         aniOut();
 
         while (!tmpAnimationUI.empty()) {

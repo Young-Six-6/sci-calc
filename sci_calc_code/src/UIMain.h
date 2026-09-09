@@ -38,6 +38,7 @@ extern MacropadUI macropadUI;
 
 extern Menu menu;
 extern Menu programMenu;
+extern Menu programOtherMenu;
 
 void displayTime();
 

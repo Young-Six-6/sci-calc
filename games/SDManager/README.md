@@ -16,17 +16,17 @@ Copy sci_calc_code/bin/main.bin and sci_calc_code/bin/sdmanager.bin to the root 
 
 将 sci_calc_code/bin/main.bin 与 sci_calc_code/bin/sdmanager.bin 复制到计算器 SD 卡根目录。
 
-Replace the old main.bin with version 1.14 so the displayed version and program menu remain in sync.
+Replace the old main.bin with version 1.15 so the displayed version and program menu remain in sync.
 
-请用 1.14 版替换旧的 main.bin，使显示版本与程序菜单保持一致。
+请用 1.15 版替换旧的 main.bin，使显示版本与程序菜单保持一致。
 
 The existing Update from SD command can install the new main.bin without a USB cable.
 
 可以使用现有的 Update from SD 命令安装新版 main.bin，无需连接 USB 数据线。
 
-For a complete USB reinstall, flash sci_calc_code/bin/sci-calc-full-1.14-min-spiffs.bin at address 0x0.
+For a complete USB reinstall, flash sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin at address 0x0.
 
-如果需要通过 USB 完整重装，请将 sci_calc_code/bin/sci-calc-full-1.14-min-spiffs.bin 刷写到地址 0x0。
+如果需要通过 USB 完整重装，请将 sci_calc_code/bin/sci-calc-full-1.15-min-spiffs.bin 刷写到地址 0x0。
 
 Do not flash main.bin or sdmanager.bin at address 0x0 because they are application-slot images.
 
@@ -35,9 +35,9 @@ Do not flash main.bin or sdmanager.bin at address 0x0 because they are applicati
 ## Connection
 ## 连接方法
 
-Open SD Manager from the calculator's Programs menu.
+Open SD Manager from Programs > Tools > SD Manager on the calculator.
 
-在计算器的 Programs 菜单中打开 SD Manager。
+在计算器中依次打开 Programs > Tools > SD Manager。
 
 Connect a phone or computer to the SCI-CALC-XXXX Wi-Fi network shown on the OLED.
 
