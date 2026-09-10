@@ -50,9 +50,11 @@ bool parseUnsigned(const char *text, uint32_t &value) {
     return true;
 }
 
-uint8_t melodyLane(uint8_t pitch, uint16_t index, uint8_t lanes) {
-    const uint8_t scale = pitch >= 60 ? pitch - 60 : 0;
-    uint8_t lane = min<uint8_t>(lanes - 1, scale * lanes / 12);
+uint8_t melodyLane(uint8_t pitch, uint8_t lowest, uint8_t highest,
+                   uint16_t index, uint8_t lanes) {
+    const uint8_t range = max<uint8_t>(1, highest - lowest);
+    const uint8_t relative = pitch > lowest ? min<uint8_t>(range, pitch - lowest) : 0;
+    uint8_t lane = (static_cast<uint16_t>(relative) * (lanes - 1) + range / 2) / range;
     if (index && (index % 11 == 0)) lane = (lane + 1) % lanes;
     return lane;
 }
@@ -204,6 +206,8 @@ bool Chart::generate(BuiltIn song, uint8_t lanes, uint8_t difficulty) {
 
     const MelodyNote *melody = song == OdeToJoy ? ODE : TWINKLE;
     const size_t length = song == OdeToJoy ? sizeof(ODE) / sizeof(ODE[0]) : sizeof(TWINKLE) / sizeof(TWINKLE[0]);
+    const uint8_t lowestPitch = song == OdeToJoy ? 55 : 60;
+    const uint8_t highestPitch = song == OdeToJoy ? 67 : 69;
     copyText(title_, sizeof(title_), song == OdeToJoy ? "Ode to Joy" : "Twinkle Star");
     copyText(artist_, sizeof(artist_), "Traditional");
     bpm_ = difficulty == 0 ? 96 : difficulty == 1 ? 118 : 144;
@@ -211,7 +215,7 @@ bool Chart::generate(BuiltIn song, uint8_t lanes, uint8_t difficulty) {
     uint32_t time = 1000;
     for (size_t index = 0; index < length; ++index) {
         const MelodyNote &source = melody[index];
-        const uint8_t lane = melodyLane(source.pitch, index, lanes_);
+        const uint8_t lane = melodyLane(source.pitch, lowestPitch, highestPitch, index, lanes_);
         const uint32_t lengthMs = static_cast<uint32_t>(source.units) * unitMs;
         append(time, lane, source.pitch, source.units >= 4 ? lengthMs - 90 : 0);
         if (difficulty == 2 && index > 4 && index % 12 == 7) {

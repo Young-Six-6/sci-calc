@@ -29,9 +29,9 @@ The OLED and SD card share the SPI MOSI and clock lines. Each device keeps its o
 
 ## Install or update
 
-The current main firmware is version 1.17.
+The current main firmware is version 1.18.
 
-For a complete USB installation, flash [`sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin) at address `0x0`.
+For a complete USB installation, flash [`sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin) at address `0x0`.
 
 For an SD update:
 
@@ -64,7 +64,7 @@ In the calculator editor, use `Shift+4` and `Shift+6` to move the text cursor. I
 `Programs` is organized into five categories:
 
 - `Calculation`: Graph Calc
-- `Games`: Maze, Super-CHIP, Chess, Spacetrash, Snake, Tetris, Catacombs of the Damned, and Squario
+- `Games`: Maze, Falling Keys, Super-CHIP, Chess, Spacetrash, Snake, Tetris, Catacombs of the Damned, and Squario
 - `Music`: Music Player and Music Keyboard
 - `Tools`: SD Manager and USB Display
 - `Other`: Wifi Rickroll and applications discovered from SD manifests
@@ -76,6 +76,7 @@ Additional applications can be added through explicit `/apps/*.app` manifests. T
 - [Graph Calculator](games/GraphCalculator/README.md)
 - [Music Player](games/MusicPlayer/README.md)
 - [Music Keyboard](games/MusicKeyboard/README.md)
+- [Falling Keys](games/FallingKeys/README.md)
 - [Maze](games/Maze/README.md)
 - [Super-CHIP](games/SuperChip/README.md)
 - [Wi-Fi SD Manager](games/SDManager/README.md)

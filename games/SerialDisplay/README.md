@@ -10,7 +10,7 @@ USB Display turns the calculator's 256x64 OLED into a small computer-driven scre
 2. Copy the current [`../../sci_calc_code/bin/main.bin`](../../sci_calc_code/bin/main.bin) to the SD-card root as `/main.bin`.
 3. Open `Programs > Tools > USB Display` before starting the PC client.
 
-For a complete USB installation, flash [`../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin) at address `0x0`.
+For a complete USB installation, flash [`../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin) at address `0x0`.
 
 ## Set up the computer
 

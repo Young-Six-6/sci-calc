@@ -86,9 +86,12 @@ Kept sliding menus inside the main panel and refreshed the sidebar during transi
 v1.17
 Added a standalone polyphonic music keyboard with visualizers and MIDI recording.
 
+v1.18
+Added a standalone falling-tile rhythm game with built-in and SD-card charts.
+
 */
 
-const std::string VERSION = "1.17";
+const std::string VERSION = "1.18";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

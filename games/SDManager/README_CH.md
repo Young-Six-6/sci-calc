@@ -10,7 +10,7 @@ SD Manager 会创建本地 Wi-Fi 热点和浏览器管理页面，用于管理�
 2. 将当前 [`../../sci_calc_code/bin/main.bin`](../../sci_calc_code/bin/main.bin) 复制到 SD 卡根目录，保存为 `/main.bin`。
 3. 进入 `Programs > Tools > SD Manager`。
 
-如需通过 USB 完整安装，请将 [`../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin) 刷写到地址 `0x0`。
+如需通过 USB 完整安装，请将 [`../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin) 刷写到地址 `0x0`。
 
 ## 连接
 
