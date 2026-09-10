@@ -1,0 +1,15 @@
+PTC1
+title=PTC Demo
+artist=SCI-CALC
+lanes=4
+bpm=120
+offset=0
+# N,time_ms,lane,note,duration_ms
+N,1000,0,60,0
+N,1500,1,62,0
+N,2000,2,64,0
+N,2500,3,67,0
+N,3000,0,60,0
+N,3000,2,64,0
+N,3600,1,65,900
+N,4700,3,67,0
