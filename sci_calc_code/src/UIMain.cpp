@@ -150,9 +150,11 @@ Menu programGameMenu(220, 0, 0, 0, 210, 64, 4, {
 
 Menu programMusicMenu(220, 0, 0, 0, 210, 64, 4, {
     new Text("Music Player"),
+    new Text("Music Keyboard"),
 },
 {
     new BinLink("/music.bin"),
+    new BinLink("/musickeyboard.bin"),
 });
 
 Menu programToolMenu(220, 0, 0, 0, 210, 64, 4, {

@@ -83,9 +83,12 @@ Grouped standalone programs into expandable category menus with directional navi
 v1.16
 Kept sliding menus inside the main panel and refreshed the sidebar during transitions.
 
+v1.17
+Added a standalone polyphonic music keyboard with visualizers and MIDI recording.
+
 */
 
-const std::string VERSION = "1.16";
+const std::string VERSION = "1.17";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

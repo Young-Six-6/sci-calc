@@ -29,7 +29,7 @@ The ROM browser accepts up to 64 files. ROM sizes from 2 through 3584 bytes are 
 3. Add the desired `.ch8` files to `/chip8`.
 4. Open `Programs > Games > Super-CHIP`.
 
-For a complete USB installation, flash [`../../sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin) at address `0x0`.
+For a complete USB installation, flash [`../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin) at address `0x0`.
 
 ## ROM browser
 

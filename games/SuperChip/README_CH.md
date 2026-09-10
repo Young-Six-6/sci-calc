@@ -29,7 +29,7 @@ ROM 浏览器最多读取 64 个文件，支持大小为 2 至 3584 字节的 RO
 3. 将需要的 `.ch8` 文件放入 `/chip8`。
 4. 进入 `Programs > Games > Super-CHIP`。
 
-如需通过 USB 完整安装，请将 [`../../sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.16-min-spiffs.bin) 刷写到地址 `0x0`。
+如需通过 USB 完整安装，请将 [`../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.17-min-spiffs.bin) 刷写到地址 `0x0`。
 
 ## ROM 浏览器
 

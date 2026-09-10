@@ -53,6 +53,7 @@ class ProgramMenuContractTests(unittest.TestCase):
         expected = {
             "/graphcalc.bin",
             "/music.bin",
+            "/musickeyboard.bin",
             "/sdmanager.bin",
             "/serialdisplay.bin",
             "/maze.bin",
