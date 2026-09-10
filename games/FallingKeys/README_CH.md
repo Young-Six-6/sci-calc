@@ -30,7 +30,7 @@ OLED 与 SD 卡共用 SPI 总线，各自使用独立 CS。声音由核心 0 上
 2. 在 SD 卡根目录保留当前主固件 `/main.bin`。
 3. 进入 `Programs > Games > Falling Keys`。
 
-如需通过 USB 完整安装主计算器，请将 [`../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin) 刷写到地址 `0x0`。
+如需通过 USB 完整安装主计算器，请将 [`../../sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) 刷写到地址 `0x0`。
 
 在任意页面长按 `ESC` 一秒会刷回 `/main.bin`。游玩时短按 `ESC` 是暂停。
 

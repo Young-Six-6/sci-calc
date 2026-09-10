@@ -10,7 +10,7 @@ SD Manager creates a local Wi-Fi hotspot and browser interface for managing file
 2. Copy the current [`../../sci_calc_code/bin/main.bin`](../../sci_calc_code/bin/main.bin) to the SD-card root as `/main.bin`.
 3. Open `Programs > Tools > SD Manager`.
 
-For a complete USB installation, flash [`../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin) at address `0x0`.
+For a complete USB installation, flash [`../../sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) at address `0x0`.
 
 ## Connect
 

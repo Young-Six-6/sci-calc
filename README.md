@@ -31,7 +31,7 @@ The OLED and SD card share the SPI MOSI and clock lines. Each device keeps its o
 
 The current main firmware is version 1.18.
 
-For a complete USB installation, flash [`sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin) at address `0x0`.
+For a complete USB installation, flash [`sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) at address `0x0`.
 
 For an SD update:
 

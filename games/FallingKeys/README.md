@@ -30,7 +30,7 @@ The OLED and SD card share the SPI bus and retain separate chip-select pins. Aud
 2. Keep the current calculator firmware on the card as `/main.bin`.
 3. Start `Programs > Games > Falling Keys`.
 
-For a complete USB installation of the main calculator, flash [`../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1.18-min-spiffs.bin) at address `0x0`.
+For a complete USB installation of the main calculator, flash [`../../sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](../../sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) at address `0x0`.
 
 Hold `ESC` for one second anywhere in the game to restore `/main.bin`. A short `ESC` press pauses a running chart.
 
