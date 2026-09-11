@@ -51,6 +51,7 @@ class ProgramMenuContractTests(unittest.TestCase):
         for name in category_names:
             paths.extend(re.findall(r'new BinLink\("([^"]+)"\)', menu_block(name)))
         expected = {
+            "/classiccalc.bin",
             "/graphcalc.bin",
             "/music.bin",
             "/musickeyboard.bin",

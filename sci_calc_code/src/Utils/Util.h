@@ -89,9 +89,12 @@ Added a standalone polyphonic music keyboard with visualizers and MIDI recording
 v1.18
 Added a standalone falling-tile rhythm game with built-in and SD-card charts.
 
+v1.19
+Added a standalone seven-segment classic calculator for everyday and accounting work.
+
 */
 
-const std::string VERSION = "1.18";
+const std::string VERSION = "1.19";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

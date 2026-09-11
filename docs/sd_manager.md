@@ -5,9 +5,9 @@ The standalone manager is built from games/SDManager and published as sci_calc_c
 
 独立管理器由 games/SDManager 构建，并发布为 sci_calc_code/bin/sdmanager.bin。
 
-Copy both the version 1.18 main.bin and sdmanager.bin from sci_calc_code/bin to the SD-card root before opening it from Programs > Tools > SD Manager.
+Copy both the current main.bin and sdmanager.bin from sci_calc_code/bin to the SD-card root before opening it from Programs > Tools > SD Manager.
 
-从 Programs > Tools > SD Manager 打开管理器之前，请把 sci_calc_code/bin 中 1.18 版 main.bin 与 sdmanager.bin 一同复制到 SD 卡根目录。
+从 Programs > Tools > SD Manager 打开管理器之前，请把 sci_calc_code/bin 中当前的 main.bin 与 sdmanager.bin 一同复制到 SD 卡根目录。
 
 The merged sci-calc-full-1x.xx-min-spiffs.bin image is available for a complete USB reinstall at flash address 0x0.
 

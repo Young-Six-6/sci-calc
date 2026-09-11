@@ -121,9 +121,11 @@ CalculatorRPN calcRPN(0, 0, 210, 64);
 EquationSolver equationSolver(0, 0, 210, 64);
 
 Menu programCalculationMenu(220, 0, 0, 0, 210, 64, 4, {
+    new Text("Classic Calc"),
     new Text("Graph Calc"),
 },
 {
+    new BinLink("/classiccalc.bin"),
     new BinLink("/graphcalc.bin"),
 });
 

@@ -196,6 +196,18 @@ class AppDiscoveryContractTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
         self.assertNotRegex(ui_source, r'new\s+Text\("[^"]*\.bin[^"]*"\)')
 
+    def test_all_current_standalone_apps_are_reserved_as_builtins(self):
+        source = (
+            Path(__file__).resolve().parents[1] / "src" / "Utils" / "AppDiscovery.cpp"
+        ).read_text(encoding="utf-8")
+        for name, firmware in (
+            ("Classic Calc", "/classiccalc.bin"),
+            ("Falling Keys", "/fallingkeys.bin"),
+            ("Music Keyboard", "/musickeyboard.bin"),
+        ):
+            self.assertIn(f'"{name}"', source)
+            self.assertIn(f'"{firmware}"', source)
+
 
 if __name__ == "__main__":
     unittest.main()
