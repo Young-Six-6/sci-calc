@@ -63,6 +63,13 @@ class ClassicCalculatorContractTests(unittest.TestCase):
         self.assertIn("SevenSegment::drawRightAligned", MAIN)
         self.assertIn("250, 35", MAIN)
 
+    def test_comma_has_a_reserved_descender_instead_of_looking_like_a_decimal(self):
+        self.assertIn("COMMA_DESCENDER = 3", SEGMENTS)
+        self.assertIn("thickness * 2 + 2", SEGMENTS)
+        comma = SEGMENTS.split("if (value == ',')", 2)[2].split("return;", 1)[0]
+        self.assertGreaterEqual(comma.count("display.drawLine"), 2)
+        self.assertIn("availableHeight - descender", SEGMENTS)
+
     def test_tape_settings_and_safe_return_are_available(self):
         self.assertIn("recallTape(selectedTape)", MAIN)
         self.assertIn("calculator.clearTape()", MAIN)

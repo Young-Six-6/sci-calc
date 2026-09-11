@@ -11,6 +11,7 @@ constexpr uint8_t SEG_D = 1 << 3;
 constexpr uint8_t SEG_E = 1 << 4;
 constexpr uint8_t SEG_F = 1 << 5;
 constexpr uint8_t SEG_G = 1 << 6;
+constexpr int16_t COMMA_DESCENDER = 3;
 
 void horizontal(U8G2 &display, int16_t x, int16_t y, int16_t width, int16_t thickness) {
     if (width <= thickness * 2) {
@@ -59,7 +60,7 @@ uint8_t SevenSegment::segmentMask(char value) {
 
 int16_t SevenSegment::glyphWidth(char value, int16_t digitWidth, int16_t thickness) {
     if (value == '.') return thickness + 1;
-    if (value == ',') return thickness + 2;
+    if (value == ',') return thickness * 2 + 2;
     return digitWidth;
 }
 
@@ -77,8 +78,13 @@ void SevenSegment::drawGlyph(U8G2 &display, char value, int16_t x, int16_t y,
         return;
     }
     if (value == ',') {
-        display.drawBox(x, y + height - thickness, thickness, thickness);
-        display.drawPixel(x, y + height);
+        const int16_t headX = x + thickness;
+        const int16_t headY = y + height - thickness;
+        display.drawBox(headX, headY, thickness, thickness);
+        display.drawLine(headX + thickness - 1, y + height - 1,
+                         x + 1, y + height + COMMA_DESCENDER - 1);
+        display.drawLine(headX + thickness - 2, y + height - 1,
+                         x, y + height + COMMA_DESCENDER - 1);
         return;
     }
 
@@ -100,7 +106,8 @@ void SevenSegment::drawRightAligned(U8G2 &display, const char *text,
                                     int16_t availableWidth, int16_t availableHeight) {
     if (!text || !*text || availableWidth <= 0 || availableHeight <= 0) return;
 
-    int16_t height = availableHeight;
+    const int16_t descender = std::strchr(text, ',') ? COMMA_DESCENDER : 0;
+    int16_t height = availableHeight - descender;
     int16_t thickness = height >= 30 ? 3 : 2;
     int16_t digitWidth = height * 5 / 9;
     int16_t gap = thickness;
@@ -113,7 +120,7 @@ void SevenSegment::drawRightAligned(U8G2 &display, const char *text,
 
     const int16_t width = textWidth(text, digitWidth, thickness, gap);
     int16_t x = right - width;
-    const int16_t y = top + (availableHeight - height) / 2;
+    const int16_t y = top + (availableHeight - height - descender) / 2;
     for (const char *cursor = text; *cursor; ++cursor) {
         drawGlyph(display, *cursor, x, y, digitWidth, height, thickness);
         x += glyphWidth(*cursor, digitWidth, thickness) + gap;
