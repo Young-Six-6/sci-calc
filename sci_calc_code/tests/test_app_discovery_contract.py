@@ -201,6 +201,7 @@ class AppDiscoveryContractTests(unittest.TestCase):
             Path(__file__).resolve().parents[1] / "src" / "Utils" / "AppDiscovery.cpp"
         ).read_text(encoding="utf-8")
         for name, firmware in (
+            ("2048", "/2048.bin"),
             ("Classic Calc", "/classiccalc.bin"),
             ("Falling Keys", "/fallingkeys.bin"),
             ("Music Keyboard", "/musickeyboard.bin"),

@@ -29,7 +29,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 
 ## 安装与更新
 
-当前主固件版本为 1.19。
+当前主固件版本为 1.20。
 
 如需通过 USB 完整安装，请将 [`sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) 刷写到地址 `0x0`。
 
@@ -64,7 +64,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 `Programs` 分为五类：
 
 - `Calculation`：Classic Calc、Graph Calc
-- `Games`：Maze、Falling Keys、Super-CHIP、Chess、Spacetrash、Snake、Tetris、Catacombs of the Damned 和 Squario
+- `Games`：2048、Maze、Falling Keys、Super-CHIP、Chess、Spacetrash、Snake、Tetris、Catacombs of the Damned 和 Squario
 - `Music`：Music Player、Music Keyboard
 - `Tools`：SD Manager 和 USB Display
 - `Other`：Wifi Rickroll 以及从 SD 清单自动发现的应用
@@ -73,6 +73,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 
 ## 应用说明
 
+- [2048](games/Game2048/README_CH.md)
 - [经典计算器](games/ClassicCalculator/README_CH.md)
 - [图形计算器](games/GraphCalculator/README_CH.md)
 - [音乐播放器](games/MusicPlayer/README_CH.md)

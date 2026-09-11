@@ -130,6 +130,7 @@ Menu programCalculationMenu(220, 0, 0, 0, 210, 64, 4, {
 });
 
 Menu programGameMenu(220, 0, 0, 0, 210, 64, 4, {
+    new Text("2048"),
     new Text("Maze"),
     new Text("Falling Keys"),
     new Text("Super-CHIP"),
@@ -141,6 +142,7 @@ Menu programGameMenu(220, 0, 0, 0, 210, 64, 4, {
     new Text("Squario"),
 },
 {
+    new BinLink("/2048.bin"),
     new BinLink("/maze.bin"),
     new BinLink("/fallingkeys.bin"),
     new BinLink("/chip8.bin"),

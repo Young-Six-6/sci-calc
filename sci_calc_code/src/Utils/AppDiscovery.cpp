@@ -24,13 +24,13 @@ constexpr uint8_t ESP_IMAGE_MAGIC = 0xE9;
 
 const char *BUILTIN_NAMES[] = {
     "Classic Calc", "Graph Calc", "Music Player", "Music Keyboard", "SD Manager", "USB Display",
-    "Maze", "Falling Keys", "Super-CHIP", "Chess", "Spacetrash", "Snake", "Tetris",
+    "2048", "Maze", "Falling Keys", "Super-CHIP", "Chess", "Spacetrash", "Snake", "Tetris",
     "Catacombs of the damned", "Squario", "Wifi Rickroll"
 };
 
 const char *BUILTIN_FIRMWARE[] = {
     "/classiccalc.bin", "/graphcalc.bin", "/music.bin", "/musickeyboard.bin", "/sdmanager.bin",
-    "/serialdisplay.bin", "/maze.bin", "/fallingkeys.bin", "/chip8.bin", "/chess.bin",
+    "/serialdisplay.bin", "/2048.bin", "/maze.bin", "/fallingkeys.bin", "/chip8.bin", "/chess.bin",
     "/spacetrash.bin", "/snake.bin", "/tetris.bin", "/COTD.bin", "/squario.bin",
     "/wifirickroll.bin"
 };

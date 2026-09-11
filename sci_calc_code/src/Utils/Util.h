@@ -92,9 +92,12 @@ Added a standalone falling-tile rhythm game with built-in and SD-card charts.
 v1.19
 Added a standalone seven-segment classic calculator for everyday and accounting work.
 
+v1.20
+Added a standalone saveable 2048 game with animation, undo, and persistent best score.
+
 */
 
-const std::string VERSION = "1.19";
+const std::string VERSION = "1.20";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;
