@@ -53,6 +53,22 @@ class MusicKeyboardContractTests(unittest.TestCase):
         self.assertIn("case KeyboardKey::K0: offset = -1", MAIN)
         self.assertIn("static_cast<uint8_t>(layout) + 1) % 3", MAIN)
 
+    def test_calculator_layout_has_direct_and_momentary_upper_notes(self):
+        for key, offset in (
+            ("Divide", 16),
+            ("Multiply", 17),
+            ("Minus", 19),
+            ("Plus", 21),
+            ("Power", 23),
+        ):
+            self.assertRegex(
+                MAIN,
+                rf"case KeyboardKey::{key}:[\s\S]{{0,100}}layout == Layout::Calculator\) offset = {offset}",
+            )
+        self.assertIn("const int16_t base = keyboardBaseNote() + octaveLift", MAIN)
+        self.assertIn("keyboard.isDown(KeyboardKey::Enter) ? 12 : 0", MAIN)
+        self.assertIn('layoutName, upper', MAIN)
+
     def test_escape_restores_the_main_firmware(self):
         self.assertIn('SD.open("/main.bin", FILE_READ)', MAIN)
         self.assertIn("Update.begin(size, U_FLASH)", MAIN)

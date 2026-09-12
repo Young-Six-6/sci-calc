@@ -48,8 +48,12 @@ The default `CALC` layout follows the familiar note order used by classic musica
 | `1` through `7` | Root, 2nd, 3rd, 4th, 5th, 6th, 7th |
 | `8` | Root, one octave up |
 | `9` | 2nd, one octave up |
+| `/`, `*`, `-`, `+`, `^` | 3rd through 7th, one octave up |
+| Hold `ENTER` with any note key | Play that key one octave higher; for example, `ENTER+3` is the upper 3rd |
 
 The science keys fill the accidentals and upper notes: `SIN`, `SEC`, `COS`, `CSC`, `TAN`, `COT`, `EXP`, and the extra key play offsets `+1`, `+3`, `+6`, `+8`, `+10`, `+13`, `+15`, and `+18` semitones.
+
+The operator extension follows the printed-key order: `/`, `*`, `-`, `+`, and `^` are upper `3`, `4`, `5`, `6`, and `7`. `ENTER` is a momentary upper-octave key in the Calculator layout, so it does not change the global octave and the normal fingering returns as soon as it is released. The operator keys keep their chord-pad behavior in the Chord and Chromatic layouts.
 
 `Shift+TAB` cycles to the `CHORD` layout. It keeps the calculator note order and turns the operator keys into chord pads, so each triad needs only one physical key:
 

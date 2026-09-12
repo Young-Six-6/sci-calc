@@ -144,9 +144,9 @@ uint8_t appendMappedNote(NoteBinding &binding, int16_t note) {
     return binding.count;
 }
 
-bool mapKeyToNotes(KeyboardKey key, NoteBinding &binding) {
+bool mapKeyToNotes(KeyboardKey key, NoteBinding &binding, int8_t octaveLift = 0) {
     binding = NoteBinding{};
-    const int16_t base = keyboardBaseNote();
+    const int16_t base = keyboardBaseNote() + octaveLift;
 
     if (layout != Layout::Calculator) {
         switch (key) {
@@ -184,6 +184,21 @@ bool mapKeyToNotes(KeyboardKey key, NoteBinding &binding) {
     int8_t offset = INT8_MIN;
     if (layout == Layout::Calculator || layout == Layout::Chords) {
         switch (key) {
+            case KeyboardKey::Divide:
+                if (layout == Layout::Calculator) offset = 16;
+                break;
+            case KeyboardKey::Multiply:
+                if (layout == Layout::Calculator) offset = 17;
+                break;
+            case KeyboardKey::Minus:
+                if (layout == Layout::Calculator) offset = 19;
+                break;
+            case KeyboardKey::Plus:
+                if (layout == Layout::Calculator) offset = 21;
+                break;
+            case KeyboardKey::Power:
+                if (layout == Layout::Calculator) offset = 23;
+                break;
             case KeyboardKey::Dot: offset = -3; break;
             case KeyboardKey::K0: offset = -1; break;
             case KeyboardKey::K1: offset = 0; break;
@@ -249,12 +264,12 @@ void stopPlayback() {
     synth.setSustain(sustain);
 }
 
-void startBinding(KeyboardKey key) {
+void startBinding(KeyboardKey key, int8_t octaveLift = 0) {
     NoteBinding *slot = bindingFor(key);
     if (!slot || slot->active) return;
     if (playback) stopPlayback();
     NoteBinding mapped;
-    if (!mapKeyToNotes(key, mapped)) return;
+    if (!mapKeyToNotes(key, mapped, octaveLift)) return;
     mapped.active = true;
     *slot = mapped;
     for (uint8_t index = 0; index < slot->count; ++index) {
@@ -534,9 +549,13 @@ void handleKeyboardEvent(const KeyboardEvent &event) {
         case KeyboardKey::Backspace:
             panic();
             break;
-        default:
-            startBinding(event.key);
+        default: {
+            const int8_t octaveLift = layout == Layout::Calculator &&
+                                      event.key != KeyboardKey::Enter &&
+                                      keyboard.isDown(KeyboardKey::Enter) ? 12 : 0;
+            startBinding(event.key, octaveLift);
             break;
+        }
     }
 }
 
@@ -624,7 +643,9 @@ void drawKeyboardPage() {
     char status[42];
     const char *layoutName = layout == Layout::Calculator ? "CALC" :
                              layout == Layout::Chords ? "CHORD" : "CHROM";
-    snprintf(status, sizeof(status), "%s  %u BPM  %s", layoutName,
+    const char *upper = layout == Layout::Calculator && keyboard.isDown(KeyboardKey::Enter)
+        ? " UP" : "";
+    snprintf(status, sizeof(status), "%s%s  %u BPM  %s", layoutName, upper,
              bpm, sustain ? "SUS" : "---");
     display.drawStr(3, 31, status);
     drawPiano();
