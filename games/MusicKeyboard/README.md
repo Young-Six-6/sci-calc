@@ -111,6 +111,37 @@ Stopping a recording saves the next available `/recordings/KEYS000.MID` through 
 
 The fixed recording buffer stores 2048 events, using about 16 KB of internal RAM. If it fills, recording stops and the take is saved automatically. If the SD card is missing or a write fails, the take remains available for playback in RAM until the application exits or a new recording starts.
 
+## MIDI key-sheet converter
+
+`tools/midi_to_calc.py` converts a standard MIDI file on a computer into a CALC-layout key sheet. It prefers tracks named as melody, lead, or vocal parts and excludes drums, sound effects, and nearly constant-pitch trigger tracks.
+
+From this directory, install the dependency once:
+
+```powershell
+python -m pip install -r tools/requirements.txt
+```
+
+Convert a file and print the complete sheet in the terminal:
+
+```powershell
+python tools/midi_to_calc.py "C:\Music\song.mid"
+```
+
+For a long song, save the complete sheet without flooding the terminal:
+
+```powershell
+python tools/midi_to_calc.py "C:\Music\song.mid" --out "song_calc.txt" --quiet
+```
+
+| Option | Purpose |
+| --- | --- |
+| `--track N` | Select a MIDI track number from the overview manually |
+| `--grid 16` | Use a sixteenth-note grid instead of the default eighth-note grid |
+| `--chords` | Add complete chord suggestions; this can substantially lengthen a long score |
+| `--full-track` | Disable automatic removal of a clearly separated bass voice in the melody track |
+
+`RPN` in a generated sheet means the physical `RPN/NORM` key. `↑x` means hold `ENTER` while pressing `x`. Chord analysis is omitted by default so a long melody is not buried under hundreds of chord windows.
+
 ## Hardware limits
 
 - The mechanical keys do not sense pressure or strike speed. `Shift+^` and `Shift+EXP` set a fixed MIDI velocity instead.

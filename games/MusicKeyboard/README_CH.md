@@ -111,6 +111,37 @@
 
 固定录音缓冲区可保存 2048 个事件，占用约 16 KB 内部 RAM。缓冲区写满时会自动停止并保存。若没有 SD 卡或写入失败，录音仍会留在 RAM 中供立即回放，直到退出应用或开始下一次录音。
 
+## MIDI 转按键谱
+
+项目内的 `tools/midi_to_calc.py` 可以在电脑上把标准 MIDI 转成音乐键盘的 CALC 按键谱。它会优先选择命名为旋律、主奏或人声的轨道，并排除鼓点、音效及音高几乎不变的触发轨。
+
+先进入本目录并安装一次依赖：
+
+```powershell
+python -m pip install -r tools/requirements.txt
+```
+
+直接转换并在终端显示完整谱面：
+
+```powershell
+python tools/midi_to_calc.py "C:\Music\song.mid"
+```
+
+长曲建议保存为文本并关闭终端长输出：
+
+```powershell
+python tools/midi_to_calc.py "C:\Music\song.mid" --out "song_calc.txt" --quiet
+```
+
+| 参数 | 用途 |
+| --- | --- |
+| `--track N` | 手动选择概览表中的 MIDI 轨道编号 |
+| `--grid 16` | 使用十六分音符网格；默认是八分音符 |
+| `--chords` | 额外生成完整和弦建议；长曲输出会明显增加 |
+| `--full-track` | 不自动分离同一轨道内明显分开的低音伴奏 |
+
+谱面中的 `RPN` 是实体 `RPN/NORM` 键的缩写；`↑x` 表示按住 `ENTER` 再按 `x`。默认转换不会输出和弦段，以免长曲被数百个和弦时间片淹没。
+
 ## 硬件限制
 
 - 机械按键不能感知压力或敲击速度，因此使用 `Shift+^` 与 `Shift+EXP` 调整统一的 MIDI 力度。
