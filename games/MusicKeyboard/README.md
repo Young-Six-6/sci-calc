@@ -51,7 +51,20 @@ The default `CALC` layout follows the familiar note order used by classic musica
 | `/`, `*`, `-`, `+`, `^` | 3rd through 7th, one octave up |
 | Hold `ENTER` with any note key | Play that key one octave higher; for example, `ENTER+3` is the upper 3rd |
 
-The science keys fill the accidentals and upper notes: `SIN`, `SEC`, `COS`, `CSC`, `TAN`, `COT`, `EXP`, and the extra key play offsets `+1`, `+3`, `+6`, `+8`, `+10`, `+13`, `+15`, and `+18` semitones.
+The function keys supply sharps and upper sharps:
+
+| Printed key | Beginner notation | Offset from root |
+| --- | --- | --- |
+| `SIN` | sharp 1 | +1 semitone |
+| `SEC` | sharp 2 | +3 semitones |
+| `COS` | sharp 4 | +6 semitones |
+| `CSC` | sharp 5 | +8 semitones |
+| `TAN` | sharp 6 | +10 semitones |
+| `COT` | upper sharp 1 | +13 semitones |
+| `EXP` | upper sharp 2 | +15 semitones |
+| `RPN/NORM` | upper sharp 4 | +18 semitones |
+
+`RPN/NORM` is the physical key immediately to the right of `EXP`. Converted scores abbreviate it as `RPN`; there is no key printed `Extra` on the calculator.
 
 The operator extension follows the printed-key order: `/`, `*`, `-`, `+`, and `^` are upper `3`, `4`, `5`, `6`, and `7`. `ENTER` is a momentary upper-octave key in the Calculator layout, so it does not change the global octave and the normal fingering returns as soon as it is released. The operator keys keep their chord-pad behavior in the Chord and Chromatic layouts.
 
