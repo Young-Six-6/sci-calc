@@ -1,0 +1,93 @@
+#pragma once
+
+#include <Arduino.h>
+
+enum class KeyCode : uint8_t {
+    Escape = 0,
+    Divide,
+    Multiply,
+    Minus,
+    Sin,
+    Sec,
+    K7,
+    K8,
+    K9,
+    Plus,
+    Cos,
+    Csc,
+    K4,
+    K5,
+    K6,
+    Power,
+    Tan,
+    Cot,
+    K1,
+    K2,
+    K3,
+    Enter,
+    Exp,
+    RpnNorm,
+    Shift,
+    K0,
+    Dot,
+    Backspace,
+    Angle,
+    Tab,
+    None = 0xFF
+};
+
+enum class KeyAction : uint8_t {
+    Press = 1,
+    Release = 2,
+    Repeat = 3
+};
+
+struct KeyEvent {
+    KeyCode key = KeyCode::None;
+    KeyAction action = KeyAction::Press;
+    uint8_t row = 0;
+    uint8_t col = 0;
+    uint32_t timestampMs = 0;
+    uint32_t heldMs = 0;
+    uint32_t stateMask = 0;
+};
+
+class KeyboardMatrix {
+public:
+    static constexpr uint8_t ROWS = 5;
+    static constexpr uint8_t COLS = 6;
+    static constexpr uint8_t KEY_COUNT = ROWS * COLS;
+
+    void begin();
+    void update();
+    bool nextEvent(KeyEvent &event);
+    bool isDown(KeyCode key) const;
+    uint32_t heldMs(KeyCode key) const;
+    uint32_t stateMask() const;
+    uint32_t droppedEvents() const;
+
+    static const char *keyName(KeyCode key);
+    static uint8_t keyId(KeyCode key);
+    static uint8_t rowFor(KeyCode key);
+    static uint8_t colFor(KeyCode key);
+
+private:
+    static constexpr uint8_t QUEUE_SIZE = 64;
+
+    struct State {
+        bool raw = false;
+        bool stable = false;
+        uint32_t changedAt = 0;
+        uint32_t pressedAt = 0;
+    };
+
+    State states_[KEY_COUNT];
+    KeyEvent queue_[QUEUE_SIZE];
+    uint8_t queueHead_ = 0;
+    uint8_t queueTail_ = 0;
+    uint32_t lastScan_ = 0;
+    uint32_t droppedEvents_ = 0;
+
+    static KeyCode keyFor(uint8_t row, uint8_t col);
+    void push(KeyCode key, KeyAction action, uint32_t now, uint32_t heldMs);
+};
