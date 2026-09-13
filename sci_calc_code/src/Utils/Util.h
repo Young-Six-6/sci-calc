@@ -95,9 +95,12 @@ Added a standalone seven-segment classic calculator for everyday and accounting 
 v1.20
 Added a standalone saveable 2048 game with animation, undo, and persistent best score.
 
+v1.21
+Added standalone USB serial key-event sharing with a read-only Windows logger.
+
 */
 
-const std::string VERSION = "1.20";
+const std::string VERSION = "1.21";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

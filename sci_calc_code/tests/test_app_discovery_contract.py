@@ -205,6 +205,7 @@ class AppDiscoveryContractTests(unittest.TestCase):
             ("Classic Calc", "/classiccalc.bin"),
             ("Falling Keys", "/fallingkeys.bin"),
             ("Music Keyboard", "/musickeyboard.bin"),
+            ("USB Key Share", "/serialkeyboard.bin"),
         ):
             self.assertIn(f'"{name}"', source)
             self.assertIn(f'"{firmware}"', source)

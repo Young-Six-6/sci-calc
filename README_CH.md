@@ -29,7 +29,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 
 ## 安装与更新
 
-当前主固件版本为 1.20。
+当前主固件版本为 1.21。
 
 如需通过 USB 完整安装，请将 [`sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) 刷写到地址 `0x0`。
 
@@ -66,7 +66,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 - `Calculation`：Classic Calc、Graph Calc
 - `Games`：2048、Maze、Falling Keys、Super-CHIP、Chess、Spacetrash、Snake、Tetris、Catacombs of the Damned 和 Squario
 - `Music`：Music Player、Music Keyboard
-- `Tools`：SD Manager 和 USB Display
+- `Tools`：SD Manager、USB Display 和 USB Key Share
 - `Other`：Wifi Rickroll 以及从 SD 清单自动发现的应用
 
 可以通过明确的 `/apps/*.app` 清单添加应用。屏幕显示名来自清单，而不是固件文件名。详见 [SD 应用自动发现](docs/sd_apps.md)。
@@ -83,6 +83,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 - [Super-CHIP](games/SuperChip/README_CH.md)
 - [Wi-Fi SD 管理器](games/SDManager/README_CH.md)
 - [USB 串口显示器](games/SerialDisplay/README_CH.md)
+- [USB 串口键盘共享](games/SerialKeyboard/README_CH.md)
 - [贪吃蛇](games/snake-game/README_CH.md)
 - [Squario](games/Squario/README_CH.md)
 

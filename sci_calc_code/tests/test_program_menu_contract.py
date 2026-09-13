@@ -58,6 +58,7 @@ class ProgramMenuContractTests(unittest.TestCase):
             "/musickeyboard.bin",
             "/sdmanager.bin",
             "/serialdisplay.bin",
+            "/serialkeyboard.bin",
             "/maze.bin",
             "/fallingkeys.bin",
             "/chip8.bin",

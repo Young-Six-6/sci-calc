@@ -166,10 +166,12 @@ Menu programMusicMenu(220, 0, 0, 0, 210, 64, 4, {
 Menu programToolMenu(220, 0, 0, 0, 210, 64, 4, {
     new Text("SD Manager"),
     new Text("USB Display"),
+    new Text("USB Key Share"),
 },
 {
     new BinLink("/sdmanager.bin"),
     new BinLink("/serialdisplay.bin"),
+    new BinLink("/serialkeyboard.bin"),
 });
 
 Menu programOtherMenu(220, 0, 0, 0, 210, 64, 4, {

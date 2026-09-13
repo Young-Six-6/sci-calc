@@ -29,7 +29,7 @@ The OLED and SD card share the SPI MOSI and clock lines. Each device keeps its o
 
 ## Install or update
 
-The current main firmware is version 1.20.
+The current main firmware is version 1.21.
 
 For a complete USB installation, flash [`sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) at address `0x0`.
 
@@ -66,7 +66,7 @@ In the calculator editor, use `Shift+4` and `Shift+6` to move the text cursor. I
 - `Calculation`: Classic Calc and Graph Calc
 - `Games`: 2048, Maze, Falling Keys, Super-CHIP, Chess, Spacetrash, Snake, Tetris, Catacombs of the Damned, and Squario
 - `Music`: Music Player and Music Keyboard
-- `Tools`: SD Manager and USB Display
+- `Tools`: SD Manager, USB Display, and USB Key Share
 - `Other`: Wifi Rickroll and applications discovered from SD manifests
 
 Additional applications can be added through explicit `/apps/*.app` manifests. Their visible names come from the manifest rather than the firmware filename. See [SD Application Discovery](docs/sd_apps.md).
@@ -83,6 +83,7 @@ Additional applications can be added through explicit `/apps/*.app` manifests. T
 - [Super-CHIP](games/SuperChip/README.md)
 - [Wi-Fi SD Manager](games/SDManager/README.md)
 - [USB Serial Display](games/SerialDisplay/README.md)
+- [USB Serial Keyboard Sharing](games/SerialKeyboard/README.md)
 - [Snake](games/snake-game/README.md)
 - [Squario](games/Squario/README.md)
 
