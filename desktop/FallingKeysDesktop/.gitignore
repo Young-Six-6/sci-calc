@@ -1,0 +1,3 @@
+node_modules/
+bridge/__pycache__/
+*.pyc

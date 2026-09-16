@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
+  <title>Falling Keys</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">FK</span><div><strong>Falling Keys</strong><small data-i18n="brandSub">Calculator rhythm lab</small></div></div>
+      <div class="topbar-actions"><label class="language"><span data-i18n="language">Language</span><select id="language-select" aria-label="Language"><option value="en">English</option><option value="zh">中文</option></select></label><div id="connection-state" class="connection offline"><span class="status-dot"></span><span data-i18n="controllerOffline">Controller offline</span></div></div>
+    </header>
+
+    <section id="home-screen" class="home-screen">
+      <div class="home-copy">
+        <p class="eyebrow" data-i18n="desktopMode">DESKTOP RHYTHM MODE</p>
+        <h1><span data-i18n="heroA">Play the chart.</span><br><em data-i18n="heroB">Feel every beat.</em></h1>
+        <p class="lede" data-i18n="heroCopy">Your calculator is the controller. The computer handles the stage, sound, timing, and score.</p>
+      </div>
+
+      <section class="setup-panel" aria-label="Game setup">
+        <div class="panel-heading"><div><p class="eyebrow" data-i18n="readyRoom">READY ROOM</p><h2 data-i18n="setupRun">Set up a run</h2></div><span class="best-chip" id="best-chip">BEST --</span></div>
+        <div class="setup-grid">
+          <label class="field full"><span data-i18n="serialController">Serial controller</span><div class="port-row"><input id="port-input" list="port-list" value="COM7" spellcheck="false"><datalist id="port-list"></datalist><button id="scan-button" class="button quiet" data-i18n="scan" title="Scan serial ports">Scan</button><button id="connect-button" class="button accent" data-i18n="connect">Connect</button></div><small id="port-help" data-i18n="serialHelp">USB Key Share at 115200 baud</small></label>
+          <label class="field full"><span data-i18n="chart">Chart</span><div class="chart-row"><div class="chart-name"><strong id="chart-title">Demo Circuit</strong><small id="chart-artist">Built-in warm-up chart</small></div><button id="load-chart-button" class="button quiet" data-i18n="loadSong">Load song</button><button id="demo-button" class="button quiet" data-i18n="useDemo">Use demo</button><input id="chart-file" type="file" accept=".ptc,.mid,.midi,text/plain,audio/midi" hidden></div></label>
+          <label class="field"><span data-i18n="laneCount">Lane count</span><select id="lane-select"><option value="4">4 lanes</option><option value="5">5 lanes</option><option value="6">6 lanes</option></select></label>
+          <label class="field"><span data-i18n="mode">Mode</span><select id="mode-select"><option value="flow" data-i18n="modeFlow">Flow</option><option value="arcade" selected data-i18n="modeArcade">Arcade</option><option value="rush" data-i18n="modeRush">Rush</option><option value="mirror" data-i18n="modeMirror">Mirror</option></select></label>
+        </div>
+        <section class="timing-panel" aria-label="Timing calibration">
+          <div class="timing-heading"><div><p class="eyebrow" data-i18n="timingCalibration">TIMING CALIBRATION</p><strong data-i18n="calibrationTitle">Calibrate controller latency</strong></div><span id="calibration-offset">+0 ms</span></div>
+          <p class="timing-lead" data-i18n="calibrationLead">Listen for the click, then press any lane key once on every beat. The result corrects the game judgment clock.</p>
+          <div class="timing-controls">
+            <label class="field"><span data-i18n="calibrationTempo">Calibration tempo</span><select id="calibration-bpm"><option value="60">60 BPM</option><option value="90" selected>90 BPM</option><option value="120">120 BPM</option></select></label>
+            <label class="field"><span data-i18n="calibrationBeats">Measured beats</span><select id="calibration-beats"><option value="8">8</option><option value="12" selected>12</option><option value="16">16</option></select></label>
+            <div class="timing-actions"><button id="calibration-start" class="button quiet" data-i18n="calibrationStart" type="button">Start calibration</button><button id="calibration-reset" class="button quiet" data-i18n="calibrationReset" type="button">Reset</button></div>
+          </div>
+          <div class="timing-progress"><div class="progress-track"><span id="calibration-progress"></span></div><span id="calibration-beat-count">0 / 12</span><span id="calibration-sample-count">0 samples</span></div>
+          <p id="calibration-status" class="timing-status" data-i18n="calibrationReady">Ready. Connect the calculator, then start calibration.</p>
+          <p class="timing-note" data-i18n="calibrationNote">A positive value means the serial event arrived late, so game judgment moves the input earlier by that amount. Live sound cannot start before the key event arrives.</p>
+        </section>
+        <div class="setup-footer"><p id="chart-summary">24 notes · 4 lanes · 120 BPM</p><div class="setup-actions"><button id="watch-demo-button" class="button quiet"><span data-i18n="watchDemo">Watch demo</span><span class="button-arrow">◉</span></button><button id="start-button" class="button start" disabled><span data-i18n="startRun">Start run</span><span class="button-arrow">→</span></button></div></div>
+        <p id="setup-message" class="message" role="status" data-i18n="connectFirst">Connect the calculator to begin.</p>
+      </section>
+
+      <div class="feature-strip" aria-label="Game features">
+        <div><span class="feature-icon coral">◎</span><div><strong data-i18n="liveJudgment">Live judgment</strong><small data-i18n="judgmentSub">Perfect, good, miss</small></div></div>
+        <div><span class="feature-icon cyan">◒</span><div><strong data-i18n="generatedSound">Generated sound</strong><small data-i18n="soundSub">MIDI accompaniment plays automatically</small></div></div>
+        <div><span class="feature-icon gold">↗</span><div><strong data-i18n="localBests">Local bests</strong><small data-i18n="bestSub">Saved on this computer</small></div></div>
+      </div>
+    </section>
+
+    <section id="game-screen" class="game-screen hidden" aria-label="Falling Keys game">
+      <div class="game-toolbar"><button id="back-button" class="icon-button" title="Back to setup">←</button><div class="song-heading"><strong id="play-title">Demo Circuit</strong><span id="play-meta">Arcade · 4 lanes</span></div><button id="pause-button" class="button quiet"><span data-i18n="pause">Pause</span> <kbd>Esc</kbd></button></div>
+      <div class="hud"><div><span class="hud-label" data-i18n="score">SCORE</span><strong id="hud-score">000000</strong></div><div><span class="hud-label" data-i18n="combo">COMBO</span><strong id="hud-combo">0</strong></div><div><span class="hud-label" data-i18n="accuracy">ACCURACY</span><strong id="hud-accuracy">--</strong></div><div class="hud-right"><span id="hud-judgement" class="judgement">READY</span><span id="hud-timing">--</span></div></div>
+      <div class="stage-wrap"><canvas id="game-canvas" width="1200" height="650" aria-label="Falling notes stage"></canvas><div id="countdown" class="countdown hidden"></div><div id="pause-card" class="pause-card hidden"><span class="eyebrow" data-i18n="runPaused">RUN PAUSED</span><strong data-i18n="takeBreath">Take a breath</strong><small data-i18n="resumeHint">Press Esc or the button to resume</small></div></div>
+      <div class="game-footer"><span id="progress-label">0:00 / 0:00</span><div class="progress-track"><span id="progress-bar"></span></div><span id="input-label" data-i18n="waitingController">Waiting for controller</span></div>
+    </section>
+
+    <section id="result-screen" class="result-screen hidden" aria-label="Run result">
+      <div class="result-panel"><p class="eyebrow" data-i18n="runComplete">RUN COMPLETE</p><h2 id="result-title">Nice run.</h2><div class="result-score" id="result-score">000000</div><div class="result-stats"><div><span data-i18n="accuracy">Accuracy</span><strong id="result-accuracy">--</strong></div><div><span data-i18n="maxCombo">Max combo</span><strong id="result-combo">0</strong></div><div><span data-i18n="perfect">Perfect</span><strong id="result-perfect">0</strong></div><div><span data-i18n="misses">Misses</span><strong id="result-misses">0</strong></div></div><div class="result-actions"><button id="result-home" class="button quiet" data-i18n="setup">Setup</button><button id="retry-button" class="button start"><span data-i18n="retry">Retry</span> <span class="button-arrow">→</span></button></div></div>
+    </section>
+  </main>
+  <script src="chart.js"></script>
+  <script src="input-map.js"></script>
+  <script src="midi.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
