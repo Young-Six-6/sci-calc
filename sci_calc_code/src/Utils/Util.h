@@ -98,9 +98,12 @@ Added a standalone saveable 2048 game with animation, undo, and persistent best 
 v1.21
 Added standalone USB serial key-event sharing with a read-only Windows logger.
 
+v1.22
+Added configurable display sleep and automatic deep-sleep power off to the main firmware.
+
 */
 
-const std::string VERSION = "1.21";
+const std::string VERSION = "1.22";
 const int REFRESH_DURATION = 10; // The refresh rate of the the program (in milliseconds)
 const float DELTA_TIME = 100; // in milliseconds
 extern bool sample;

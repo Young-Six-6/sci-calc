@@ -4,6 +4,7 @@
 
 #include "UIMain.h"
 #include "Utils/AppDiscovery.h"
+#include "Power/PowerManager.h"
 
 
 
@@ -45,6 +46,7 @@ void init() {
 void setup() {
     init();
     kb.init();
+    powerManager.begin();
     bleKeyboard.begin();
     currentElement -> init();
     u8g2.clearBuffer();
@@ -52,9 +54,10 @@ void setup() {
 }
 
 void loop() {
+    kb.update();
+    if (!powerManager.update(kb)) return;
     animateAll();
     u8g2.clearBuffer();
-    kb.update();
     drawSidebar();
     currentElement -> update();
     updateTmp();

@@ -21,6 +21,7 @@
 #include "./UIElements/Checkbox.h"
 #include "./UIElements/Funstuff.h"
 #include "./UIElements/Slider.h"
+#include "./Power/PowerSettings.h"
 
 
 extern std::string clipboard;

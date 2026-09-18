@@ -85,6 +85,7 @@ InputBox expressionInput(0, 64, 210, 12, 42);
 Checkbox checkbox1("soild fill cursor", &cursorMode);
 //Slider slider1("Testval", 0, 100);
 Funstuff funstuff;
+PowerSettings powerSettings;
 
 
 MacroPad calcLayout({
@@ -105,11 +106,13 @@ Menu menuSpecs(0, -70, 0, 0, 210, 64, 5, {
 
 Menu menuSettings(0, -70, 0, 0, 210, 64, 5, {
     &checkbox1,
+    new Text("Power saving"),
     new Text("Update from SD"),
     new Text(("Version: " + VERSION).c_str())
 },
 {
     &checkbox1,
+    &powerSettings,
     new BinLink("/main.bin"),
     nullptr
 });
