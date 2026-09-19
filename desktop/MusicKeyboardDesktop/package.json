@@ -1,0 +1,15 @@
+{
+  "name": "sci-calc-music-keyboard-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop Web Audio recreation of the SCI-CALC music keyboard.",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/keymap.test.js tests/midi-writer.test.js tests/audio-envelope.test.js tests/groove-engine.test.js tests/challenge-engine.test.js tests/chord-engine.test.js tests/sampler-engine.test.js && python -m unittest tests/test_midi_lesson.py",
+    "check": "node --check electron/main.js && node --check electron/preload.js && node --check renderer/keymap.js && node --check renderer/midi-writer.js && node --check renderer/audio-envelope.js && node --check renderer/groove-engine.js && node --check renderer/challenge-engine.js && node --check renderer/chord-engine.js && node --check renderer/sampler-engine.js && node --check renderer/app.js && python -m py_compile bridge/midi_lesson.py"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0"
+  }
+}

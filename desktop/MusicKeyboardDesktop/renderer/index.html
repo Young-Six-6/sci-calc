@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCI-CALC Music Keyboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">SC</div>
+        <div>
+          <div class="eyebrow">SCI-CALC / DESKTOP INSTRUMENT</div>
+          <h1>Music Keyboard</h1>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="serial-control">
+          <span class="status-dot" id="statusDot"></span>
+          <select id="portSelect" aria-label="Serial port">
+            <option value="">No port selected</option>
+          </select>
+          <button class="button compact" id="refreshPorts" type="button">Refresh</button>
+          <button class="button primary compact" id="connectButton" type="button">Connect</button>
+        </div>
+        <button class="button audio-button" id="audioButton" type="button">Enable audio</button>
+        <label class="language-select">
+          <span class="sr-only">Language</span>
+          <select id="languageSelect" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-caption" data-i18n="workspace">WORKSPACE</div>
+        <nav class="page-nav" aria-label="Workspace pages">
+          <div class="nav-group">
+            <div class="nav-group-label" data-i18n="navPlay">PLAY</div>
+            <button class="page-tab active" data-page="keys" type="button"><span class="tab-code">01</span><span data-i18n="keys">Keys</span></button>
+            <button class="page-tab" data-page="groove" type="button"><span class="tab-code">02</span><span data-i18n="groove">Groove</span></button>
+          </div>
+          <div class="nav-group">
+            <div class="nav-group-label" data-i18n="navCreate">CREATE</div>
+            <button class="page-tab" data-page="synth" type="button"><span class="tab-code">03</span><span data-i18n="synth">Synth</span></button>
+            <button class="page-tab" data-page="rec" type="button"><span class="tab-code">04</span><span data-i18n="recorder">Recorder</span></button>
+          </div>
+          <div class="nav-group">
+            <div class="nav-group-label" data-i18n="navLearn">LEARN</div>
+            <button class="page-tab" data-page="learn" type="button"><span class="tab-code">05</span><span data-i18n="learn">Learn</span></button>
+            <button class="page-tab" data-page="convert" type="button"><span class="tab-code">06</span><span data-i18n="convert">Convert</span></button>
+          </div>
+          <div class="nav-group">
+            <div class="nav-group-label" data-i18n="navTools">TOOLS</div>
+            <button class="page-tab" data-page="scope" type="button"><span class="tab-code">07</span><span data-i18n="scope">Scope</span></button>
+            <button class="page-tab" data-page="settings" type="button"><span class="tab-code">08</span><span data-i18n="settings">Settings</span></button>
+          </div>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="serial-summary">
+            <div class="sidebar-caption" data-i18n="inputDevice">INPUT DEVICE</div>
+            <strong id="deviceName">Waiting for calculator</strong>
+            <span id="deviceDetail">SKB1 / 5 x 6 matrix</span>
+          </div>
+          <button class="button ghost full" id="panicButton" type="button" data-i18n="panic">Panic / silence</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="page active" id="page-keys">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow" data-i18n="liveInstrument">LIVE INSTRUMENT</div>
+              <h2 data-i18n="calculatorKeys">Calculator keys</h2>
+              <p data-i18n="calculatorKeysLead">Every sound comes from the connected calculator. Play naturally, or hold SHIFT for controls.</p>
+            </div>
+            <div class="mode-chip" id="layoutChip">Calculator</div>
+          </div>
+
+          <div class="metric-row">
+            <div class="metric"><span data-i18n="tone">Tone</span><strong id="toneMetric">Piano</strong></div>
+            <div class="metric"><span data-i18n="range">Range</span><strong id="rangeMetric">C4 / +0</strong></div>
+            <div class="metric"><span data-i18n="activeNotes">Active notes</span><strong id="activeMetric">0 / 16</strong></div>
+            <div class="metric"><span data-i18n="recordState">Record</span><strong id="recordMetric">Ready</strong></div>
+          </div>
+
+          <div class="lesson-live panel" id="lessonLive" hidden>
+            <div class="lesson-live-copy"><span class="panel-kicker" data-i18n="lessonNow">LESSON / NEXT STEP</span><strong id="lessonLiveTitle">1 / 1</strong><small id="lessonLiveKeys">1</small></div>
+            <div class="lesson-live-meter"><span id="lessonLiveProgress">0%</span><div class="lesson-progress"><i id="lessonLiveBar"></i></div></div>
+            <div class="lesson-live-actions"><button class="button compact" id="lessonLivePrev" type="button" data-i18n="previous">Previous</button><button class="button compact" id="lessonLiveNext" type="button" data-i18n="skip">Skip</button><button class="button ghost compact" id="lessonStopButton" type="button" data-i18n="stopLesson">Stop lesson</button></div>
+          </div>
+
+          <div class="challenge-live panel" id="challengeLive" hidden>
+            <div class="lesson-live-copy"><span class="panel-kicker" data-i18n="challenge">CHALLENGE</span><strong id="challengeLiveTitle">Round 1</strong><small id="challengeLiveKeys">-</small></div>
+            <div class="lesson-live-meter"><span id="challengeLiveProgress">0%</span><div class="lesson-progress"><i id="challengeLiveBar"></i></div></div>
+            <div class="lesson-live-actions"><button class="button compact" id="challengeLiveRestart" type="button" data-i18n="challengeRestart">Restart challenge</button><button class="button ghost compact" id="challengeStopButton" type="button" data-i18n="challengeStop">Stop challenge</button></div>
+          </div>
+
+          <div class="panel piano-panel">
+            <div class="panel-head">
+              <div><span class="panel-kicker" id="visualKicker" data-i18n="pianoRoll">PIANO ROLL</span><h3 id="visualHeading" data-i18n="twoOctaveRange">Two-octave visual range</h3></div>
+              <div class="panel-head-tools"><div class="view-switch" role="tablist" aria-label="Key visualization"><button class="view-option active" data-visual-mode="piano" type="button" data-i18n="pianoView">Piano</button><button class="view-option" data-visual-mode="calculator" type="button" data-i18n="calculatorView">Calculator</button></div><div class="panel-readout" id="noteReadout">Ready</div></div>
+            </div>
+            <canvas id="pianoCanvas" class="piano-canvas" aria-label="Two octave piano visualization"></canvas>
+            <div id="calculatorVisual" class="calculator-visual" hidden>
+              <div class="calculator-screen"><span id="calculatorScreenTone">PIANO</span><strong id="calculatorScreenNotes">READY</strong><small id="calculatorScreenMeta">CALC / C4 / +0</small></div>
+              <div class="calculator-key-grid" id="calculatorKeyGrid"></div>
+            </div>
+            <div class="piano-legend"><span><i class="legend-swatch pressed"></i><span data-i18n="pressed">Pressed</span></span><span><i class="legend-swatch sounding"></i><span data-i18n="sounding">Sounding</span></span><span><i class="legend-swatch root"></i><span data-i18n="rootNote">Root</span></span></div>
+          </div>
+
+          <div class="panel physical-panel">
+            <div class="panel-head"><div><span class="panel-kicker" data-i18n="physicalMatrix">PHYSICAL MATRIX</span><h3 data-i18n="keyState">Key state</h3></div><div class="panel-readout" id="packetReadout">0 packets</div></div>
+            <div class="physical-grid" id="physicalGrid"></div>
+          </div>
+        </section>
+
+        <section class="page" id="page-learn">
+          <div class="page-heading"><div><div class="eyebrow" data-i18n="guidedPractice">GUIDED PRACTICE</div><h2 data-i18n="lessonTitle">MIDI lesson</h2><p data-i18n="lessonLead">Import a MIDI file and follow the highlighted calculator keys at your own pace.</p></div><div class="mode-chip" data-i18n="waitForYou">WAIT FOR YOU</div></div>
+          <div class="panel lesson-setup">
+            <div class="converter-file"><div><span class="panel-kicker" data-i18n="lessonMidi">LESSON MIDI</span><strong id="lessonFileName" data-i18n="noMidiSelected">No MIDI selected</strong><span id="lessonFilePath" class="muted" data-i18n="lessonChooseHint">Choose a MIDI file to build a lesson.</span></div><button class="button" id="chooseLessonMidiButton" type="button" data-i18n="chooseMidi">Choose MIDI</button></div>
+            <div class="lesson-options"><div class="option-field"><label for="lessonComplexity" data-i18n="chordComplexity">Chord complexity</label><select id="lessonComplexity"><option value="melody" data-i18n="melodyOnly">Melody only</option><option value="simple" data-i18n="simpleChord">Simple chord</option><option value="full" data-i18n="fullChord">Full chord</option></select></div><p class="muted" id="lessonComplexityHint" data-i18n="melodyOnlyHint">One highlighted note at a time.</p><div class="lesson-command-row"><button class="button primary" id="lessonStartButton" type="button" disabled data-i18n="startLesson">Start lesson</button><button class="button" id="lessonRestartButton" type="button" disabled data-i18n="restartLesson">Restart</button></div></div>
+            <div class="converter-status" id="lessonStatus" data-i18n="lessonChooseHint">Choose a MIDI file to build a lesson.</div>
+          </div>
+          <div class="panel challenge-setup" id="challengePanel">
+            <div class="panel-head"><div><span class="panel-kicker" data-i18n="challenge">CHALLENGE</span><h3 data-i18n="challengeTitle">Follow challenge</h3></div><div class="mode-chip" id="challengeStatusChip" data-i18n="challengeReady">Build a MIDI lesson first.</div></div>
+            <p class="challenge-lead" data-i18n="challengeLead">The desktop previews a short phrase, then waits for you to replay it on the calculator. Difficulty grows as you clear rounds.</p>
+            <div class="challenge-toolbar"><div class="option-field"><label for="challengeDifficulty" data-i18n="challengeDifficulty">Difficulty</label><select id="challengeDifficulty"><option value="easy" data-i18n="challengeEasy">Easy</option><option value="normal" selected data-i18n="challengeNormal">Normal</option><option value="hard" data-i18n="challengeHard">Hard</option></select></div><div class="challenge-actions"><button class="button primary" id="challengeStartButton" type="button" disabled data-i18n="challengeStart">Start challenge</button><button class="button ghost" id="challengeStopButtonPage" type="button" disabled data-i18n="challengeStop">Stop challenge</button></div><div class="panel-readout" id="challengePhraseReadout">-</div></div>
+            <div class="challenge-stats"><div><span data-i18n="challengeRound">Round</span><strong id="challengeRoundValue">0</strong></div><div><span data-i18n="challengeScore">Score</span><strong id="challengeScoreValue">0</strong></div><div><span data-i18n="challengeCombo">Combo</span><strong id="challengeComboValue">0</strong></div><div><span data-i18n="challengeAccuracy">Accuracy</span><strong id="challengeAccuracyValue">0%</strong></div></div>
+            <p class="challenge-hint muted" data-i18n="challengeKeyboardHint">Gold keys are the current target. The preview is local to this desktop app; no keyboard input is sent to Windows.</p>
+          </div>
+          <div class="metric-row lesson-metrics" id="lessonMetrics" hidden><div class="metric"><span data-i18n="lessonSteps">Steps</span><strong id="lessonStepCount">0</strong></div><div class="metric"><span data-i18n="melodyTrack">Melody track</span><strong id="lessonTrack">-</strong></div><div class="metric"><span data-i18n="recommendedRange">Recommended</span><strong id="lessonRange">-</strong></div><div class="metric"><span data-i18n="tempo">Tempo</span><strong id="lessonTempo">-</strong></div></div>
+          <div class="panel lesson-preview" id="lessonPreview" hidden><div class="panel-head"><div><span class="panel-kicker" data-i18n="nextStep">NEXT STEP</span><h3 id="lessonPreviewNotes">-</h3></div><div class="panel-readout" id="lessonPreviewIndex">0 / 0</div></div><div class="lesson-key-preview" id="lessonKeyPreview"></div><div class="lesson-preview-footer"><div class="lesson-progress"><i id="lessonPreviewBar"></i></div><span id="lessonMistakes">0 mistakes</span></div></div>
+        </section>
+
+        <section class="page" id="page-scope">
+          <div class="page-heading"><div><div class="eyebrow" data-i18n="instrumentTelemetry">INSTRUMENT TELEMETRY</div><h2 data-i18n="scopeTitle">Scope</h2><p data-i18n="scopeLead">A live view of the desktop synth output and calculator input load.</p></div><div class="mode-chip" id="scopeMode">Web Audio</div></div>
+          <div class="panel scope-panel"><div class="panel-head"><div><span class="panel-kicker" data-i18n="waveform">WAVEFORM</span><h3 data-i18n="audioOutput">Audio output</h3></div><div class="scope-controls"><label for="scopeRateSelect" data-i18n="scopeRate">Refresh</label><select id="scopeRateSelect" aria-label="Scope refresh rate"><option value="15">15 FPS</option><option value="30">30 FPS</option><option value="60" selected>60 FPS</option><option value="120">120 FPS</option></select><div class="panel-readout" id="scopeReadout">0 voices</div></div></div><canvas id="scopeCanvas" class="scope-canvas" aria-label="Live audio waveform"></canvas></div>
+          <div class="telemetry-grid">
+            <div class="telemetry"><span data-i18n="voices">Voices</span><strong id="voiceStat">0 / 16</strong><div class="bar"><i id="voiceBar"></i></div></div>
+            <div class="telemetry"><span data-i18n="peak">Peak</span><strong id="peakStat">0%</strong><div class="bar cyan"><i id="peakBar"></i></div></div>
+            <div class="telemetry"><span data-i18n="renderLoad">Render load</span><strong id="loadStat">0%</strong><div class="bar gold"><i id="loadBar"></i></div></div>
+          </div>
+          <details class="panel sound-lab-panel collapsible-panel"><summary class="panel-head"><div><span class="panel-kicker" data-i18n="soundLab">SOUND LAB</span><h3 data-i18n="soundLabTitle">Waveform + spectrum</h3></div><span class="panel-readout" data-i18n="soundLabOpen">Open for analysis</span></summary><div class="sound-lab-controls scope-controls"><label for="soundLabSmooth" data-i18n="soundLabFilter">Trace smoothing</label><select id="soundLabSmooth"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option><option value="9">9</option></select><label for="soundLabGain" data-i18n="soundLabGain">Display gain</label><input id="soundLabGain" type="range" min="0.5" max="6" step="0.1" value="1.5"></div><div class="sound-lab-grid"><div><div class="sound-lab-label"><span data-i18n="soundLabRaw">Live waveform</span><span data-i18n="soundLabFiltered">Filtered trace</span></div><canvas id="soundLabWaveCanvas" class="sound-lab-canvas" aria-label="Live and filtered waveform"></canvas></div><div><div class="sound-lab-label"><span data-i18n="soundLabSpectrum">Spectrum</span></div><canvas id="soundLabSpectrumCanvas" class="sound-lab-canvas" aria-label="Output spectrum"></canvas></div></div><p class="sound-lab-hint muted" data-i18n="soundLabHint">The lab is diagnostic only. It does not add another audio path or change the synth voice limit.</p></details>
+          <div class="panel info-panel"><span class="panel-kicker" data-i18n="scopeNotes">NOTES</span><p data-i18n="scopeNotesBody">The desktop engine keeps the same 16-voice ceiling as the calculator firmware. The scope is diagnostic only and never changes the sound path.</p></div>
+        </section>
+
+        <section class="page" id="page-rec">
+          <div class="page-heading"><div><div class="eyebrow" data-i18n="capture">CAPTURE</div><h2 data-i18n="recorderTitle">Recorder</h2><p data-i18n="recorderLead">Record the calculator performance, replay it, and export a standard Format 0 MIDI file.</p></div><div class="mode-chip" id="takeChip">No take</div></div>
+          <div class="recorder-layout">
+            <div class="panel recorder-main"><div class="record-orb" id="recordOrb"></div><div class="record-state" id="recState">Ready to record</div><div class="record-time" id="recTime">00:00.0</div><div class="record-progress"><i id="recProgress"></i></div><div class="rec-buttons"><button class="button primary" id="recordButton" type="button" data-i18n="startRecording">Start recording</button><button class="button" id="playButton" type="button" data-i18n="playTake">Play take</button><button class="button ghost" id="clearButton" type="button" data-i18n="clearTake">Clear take</button><button class="button ghost" id="saveButton" type="button" data-i18n="saveMidi">Save MIDI</button></div></div>
+            <div class="panel take-details"><span class="panel-kicker" data-i18n="takeDetails">TAKE DETAILS</span><dl><dt data-i18n="events">Events</dt><dd id="eventDetail">0 / 2048</dd><dt data-i18n="duration">Duration</dt><dd id="durationDetail">00:00.0</dd><dt data-i18n="initialTone">Initial tone</dt><dd id="initialToneDetail">-</dd><dt data-i18n="initialTempo">Initial tempo</dt><dd id="initialTempoDetail">-</dd><dt data-i18n="savedFile">Saved file</dt><dd id="savedDetail">In memory</dd></dl><p class="muted" id="recNotice">A take stays in memory until cleared.</p></div>
+          </div>
+          <div class="panel event-log"><div class="panel-head"><div><span class="panel-kicker" data-i18n="recentEvents">RECENT EVENTS</span><h3 data-i18n="eventMonitor">Event monitor</h3></div><div class="panel-readout" id="eventCountReadout">0</div></div><div class="event-table" id="eventTable"><div class="empty-state" data-i18n="noEvents">No recorded events yet.</div></div></div>
+        </section>
+
+        <section class="page" id="page-convert">
+          <div class="page-heading"><div><div class="eyebrow" data-i18n="midiTools">MIDI TOOLS</div><h2 data-i18n="convertTitle">Calculator sheet</h2><p data-i18n="convertLead">Turn a MIDI melody into a readable SCI-CALC key sheet, with the same key names used by the instrument.</p></div><div class="mode-chip" data-i18n="calcSheet">CALC SHEET</div></div>
+          <div class="panel converter-controls"><div class="converter-file"><div><span class="panel-kicker" data-i18n="sourceMidi">SOURCE MIDI</span><strong id="midiFileName" data-i18n="noMidiSelected">No MIDI selected</strong><span id="midiFilePath" class="muted">Choose a .mid or .midi file to begin.</span></div><button class="button" id="chooseMidiButton" type="button" data-i18n="chooseMidi">Choose MIDI</button></div><div class="converter-options"><div class="option-field"><label for="gridSelect" data-i18n="rhythmGrid">Rhythm grid</label><select id="gridSelect"><option value="8">1/8</option><option value="16">1/16</option></select></div><div class="option-field"><label for="trackInput" data-i18n="melodyTrack">Melody track</label><input id="trackInput" type="number" min="0" step="1" placeholder="Auto"></div><div class="option-field"><label for="rpnInput" data-i18n="extraKeyLabel">Extra key label</label><input id="rpnInput" type="text" value="RPN" maxlength="12"></div><label class="check-field"><input id="fullTrackToggle" type="checkbox"><span data-i18n="fullTrack">Use full selected track</span></label><label class="check-field"><input id="chordsToggle" type="checkbox"><span data-i18n="includeChords">Include chord suggestions</span></label><button class="button primary convert-button" id="convertMidiButton" type="button" data-i18n="convertMidi">Convert MIDI</button></div><div class="converter-status" id="converterStatus" data-i18n="chooseMidiHint">Choose a MIDI file to begin.</div></div>
+          <div class="panel report-panel"><div class="panel-head"><div><span class="panel-kicker" data-i18n="report">REPORT</span><h3 data-i18n="sheetPreview">Key sheet preview</h3></div><div class="panel-readout" id="reportReadout">0 lines</div></div><pre id="converterOutput" class="converter-output"><span data-i18n="reportEmpty">The converted report will appear here.</span></pre></div>
+        </section>
+
+        <section class="page" id="page-settings">
+          <div class="page-heading"><div><div class="eyebrow" data-i18n="instrumentSetup">INSTRUMENT SETUP</div><h2 data-i18n="settingsTitle">Settings</h2><p data-i18n="settingsLead">The controls mirror the calculator's MusicKeyboard settings page.</p></div><div class="mode-chip" id="baseNoteChip">MIDI 60</div></div>
+          <div class="settings-grid">
+            <div class="panel setting-group"><span class="panel-kicker" data-i18n="sound">SOUND</span><div class="setting-line"><label for="toneSelect" data-i18n="tone">Tone</label><select id="toneSelect"></select></div><div class="setting-line"><label data-i18n="volume">Volume</label><div class="stepper"><button class="step-button" data-setting="volume" data-step="-1" type="button">-</button><strong id="volumeValue">7</strong><button class="step-button" data-setting="volume" data-step="1" type="button">+</button></div></div><div class="setting-line"><label data-i18n="velocity">Velocity</label><div class="stepper"><button class="step-button" data-setting="velocity" data-step="-8" type="button">-</button><strong id="velocityValue">100</strong><button class="step-button" data-setting="velocity" data-step="8" type="button">+</button></div></div><div class="toggle-line"><label for="sustainToggle" data-i18n="sustain">Sustain</label><input id="sustainToggle" type="checkbox"><span class="toggle-ui"></span></div><div class="toggle-line"><label for="metronomeToggle" data-i18n="metronome">Metronome</label><input id="metronomeToggle" type="checkbox"><span class="toggle-ui"></span></div></div>
+            <div class="panel setting-group"><span class="panel-kicker" data-i18n="pitch">PITCH</span><div class="setting-line"><label data-i18n="octave">Octave</label><div class="stepper"><button class="step-button" data-setting="octave" data-step="-1" type="button">-</button><strong id="octaveValue">4</strong><button class="step-button" data-setting="octave" data-step="1" type="button">+</button></div></div><div class="setting-line"><label data-i18n="root">Root</label><div class="stepper"><button class="step-button" data-setting="root" data-step="-1" type="button">-</button><strong id="rootValue">C</strong><button class="step-button" data-setting="root" data-step="1" type="button">+</button></div></div><div class="setting-line"><label data-i18n="transpose">Transpose</label><div class="stepper"><button class="step-button" data-setting="transpose" data-step="-1" type="button">-</button><strong id="transposeValue">+0</strong><button class="step-button" data-setting="transpose" data-step="1" type="button">+</button></div></div><div class="setting-line"><label data-i18n="layout">Layout</label><select id="layoutSelect"><option value="calculator">Calculator</option><option value="chords">Chords</option><option value="chromatic">Chromatic</option></select></div></div>
+            <div class="panel setting-group"><span class="panel-kicker" data-i18n="tempo">TEMPO</span><div class="setting-line"><label data-i18n="bpm">BPM</label><div class="stepper wide"><button class="step-button" data-setting="bpm" data-step="-5" type="button">-</button><strong id="bpmValue">120</strong><button class="step-button" data-setting="bpm" data-step="5" type="button">+</button></div></div><div class="tempo-scale"><span>40</span><input id="bpmRange" type="range" min="40" max="240" step="5" value="120"><span>240</span></div><p class="muted" data-i18n="tempoHint">Tempo is recorded into MIDI when it changes during a take.</p></div>
+          </div>
+          <div class="panel calibration-panel">
+            <div class="panel-head"><div><span class="panel-kicker" data-i18n="latencyCalibration">LATENCY CALIBRATION</span><h3 data-i18n="latencyCalibrationTitle">Input timing calibration</h3></div><div class="panel-readout" id="calibrationOffsetReadout">+0 ms</div></div>
+            <p class="calibration-lead" data-i18n="latencyCalibrationLead">Listen to the click, then press one note key on every beat. The measured timing offset becomes the global correction for recorded and timed performance data.</p>
+            <div class="calibration-controls"><div class="option-field"><label for="calibrationBpmSelect" data-i18n="calibrationTempo">Calibration tempo</label><select id="calibrationBpmSelect"><option value="60">60 BPM</option><option value="90" selected>90 BPM</option><option value="120">120 BPM</option></select></div><div class="option-field"><label for="calibrationBeatsSelect" data-i18n="calibrationBeats">Measured beats</label><select id="calibrationBeatsSelect"><option value="8">8</option><option value="12" selected>12</option><option value="16">16</option></select></div><div class="calibration-actions"><button class="button primary" id="calibrationStartButton" type="button" data-i18n="startCalibration">Start calibration</button><button class="button ghost" id="calibrationResetButton" type="button" data-i18n="resetCalibration">Reset</button></div><div class="calibration-nudge"><button class="step-button" id="calibrationDownButton" type="button" aria-label="Decrease calibration">-</button><strong id="calibrationOffsetValue">+0 ms</strong><button class="step-button" id="calibrationUpButton" type="button" aria-label="Increase calibration">+</button></div></div>
+            <div class="calibration-progress"><div class="lesson-progress"><i id="calibrationProgressBar"></i></div><span id="calibrationBeatReadout">0 / 12</span><span id="calibrationSampleReadout">0 samples</span></div>
+            <div class="calibration-status" id="calibrationStatus" data-i18n="calibrationReady">Ready. Enable audio before starting.</div>
+            <p class="calibration-note" data-i18n="calibrationNote">A positive value means the key event arrived late, so recording timestamps are moved earlier by that amount. Live audio cannot be played before the physical key arrives.</p>
+          </div>
+          <div class="panel shortcut-panel"><div><span class="panel-kicker" data-i18n="quickControls">QUICK CONTROLS</span><h3 data-i18n="shiftControls">Shift controls</h3></div><div class="shortcut-list"><span><b>SHIFT + 1 / 3</b><em data-i18n="changeTone">Change tone</em></span><span><b>SHIFT + 4 / 6</b><em data-i18n="changeOctave">Change octave</em></span><span><b>SHIFT + 2 / 8</b><em data-i18n="changeTranspose">Transpose</em></span><span><b>SHIFT + 7 / 9</b><em data-i18n="changeTempo">Change BPM</em></span><span><b>SHIFT + TAB</b><em data-i18n="changeLayout">Change layout</em></span><span><b>SHIFT + 0</b><em data-i18n="recordShortcut">Record</em></span></div></div>
+        </section>
+
+        <section class="page" id="page-synth">
+          <div class="page-heading"><div><div class="eyebrow" data-i18n="synth">SYNTH</div><h2 data-i18n="synthTitle">Analog synthesizer</h2><p data-i18n="synthLead">Shape a desktop patch while the calculator remains the controller. Changes affect notes started after the edit.</p></div><div class="mode-chip" id="synthModeChip">Factory tone</div></div>
+          <div class="panel synth-toolbar">
+            <div class="option-field"><label for="synthModeSelect" data-i18n="synthMode">Engine</label><select id="synthModeSelect"><option value="factory" data-i18n="factoryTone">Factory tone</option><option value="custom" data-i18n="customPatch">Custom patch</option></select></div>
+            <div class="option-field"><label for="synthPresetSelect" data-i18n="synthPreset">Preset</label><select id="synthPresetSelect"><option value="init">Init Poly</option><option value="warm">Warm Pad</option><option value="bright">Bright Lead</option><option value="bass">Mono Bass</option><option value="bell">Digital Bell</option></select></div>
+            <button class="button primary" id="applySynthPreset" type="button" data-i18n="applyPreset">Apply preset</button>
+            <button class="button ghost" id="resetSynthButton" type="button" data-i18n="resetSynth">Reset patch</button>
+          </div>
+          <div class="synth-grid">
+            <div class="panel synth-group"><div class="panel-head"><div><span class="panel-kicker" data-i18n="oscillatorOne">OSCILLATOR 1</span><h3 data-i18n="waveform">Waveform</h3></div></div><div class="synth-control"><label for="synthOsc1Wave" data-i18n="waveform">Waveform</label><select id="synthOsc1Wave"><option value="sine" data-i18n="waveSine">Sine</option><option value="triangle" data-i18n="waveTriangle">Triangle</option><option value="sawtooth" selected data-i18n="waveSaw">Saw</option><option value="square" data-i18n="waveSquare">Square</option></select></div><div class="synth-control"><label for="synthOsc1Level" data-i18n="oscLevel">Level</label><div class="synth-range"><input id="synthOsc1Level" data-synth-range="osc1Level" type="range" min="0" max="1" step="0.01"><output id="synthOsc1LevelValue">58%</output></div></div></div>
+            <div class="panel synth-group"><div class="panel-head"><div><span class="panel-kicker" data-i18n="oscillatorTwo">OSCILLATOR 2</span><h3 data-i18n="waveform">Waveform</h3></div></div><div class="synth-control"><label for="synthOsc2Wave" data-i18n="waveform">Waveform</label><select id="synthOsc2Wave"><option value="sine" data-i18n="waveSine">Sine</option><option value="triangle" data-i18n="waveTriangle">Triangle</option><option value="sawtooth" data-i18n="waveSaw">Saw</option><option value="square" selected data-i18n="waveSquare">Square</option></select></div><div class="synth-control"><label for="synthOsc2Level" data-i18n="oscLevel">Level</label><div class="synth-range"><input id="synthOsc2Level" data-synth-range="osc2Level" type="range" min="0" max="1" step="0.01"><output id="synthOsc2LevelValue">24%</output></div></div><div class="synth-control"><label for="synthOsc2Detune" data-i18n="detune">Detune</label><div class="synth-range"><input id="synthOsc2Detune" data-synth-range="osc2Detune" type="range" min="-1200" max="1200" step="1"><output id="synthOsc2DetuneValue">+7 ct</output></div></div></div>
+            <div class="panel synth-group"><div class="panel-head"><div><span class="panel-kicker" data-i18n="filter">FILTER</span><h3 data-i18n="cutoff">Cutoff</h3></div></div><div class="synth-control"><label for="synthNoiseLevel" data-i18n="noise">Noise</label><div class="synth-range"><input id="synthNoiseLevel" data-synth-range="noiseLevel" type="range" min="0" max="0.35" step="0.01"><output id="synthNoiseLevelValue">0%</output></div></div><div class="synth-control"><label for="synthCutoff" data-i18n="cutoff">Cutoff</label><div class="synth-range"><input id="synthCutoff" data-synth-range="cutoff" type="range" min="120" max="12000" step="10"><output id="synthCutoffValue">2600 Hz</output></div></div><div class="synth-control"><label for="synthResonance" data-i18n="resonance">Resonance</label><div class="synth-range"><input id="synthResonance" data-synth-range="resonance" type="range" min="0" max="1" step="0.01"><output id="synthResonanceValue">18%</output></div></div></div>
+            <div class="panel synth-group"><div class="panel-head"><div><span class="panel-kicker" data-i18n="envelope">AMPLITUDE ENVELOPE</span><h3 data-i18n="attack">Attack</h3></div></div><div class="synth-control"><label for="synthAttack" data-i18n="attack">Attack</label><div class="synth-range"><input id="synthAttack" data-synth-range="attack" type="range" min="0.001" max="2" step="0.001"><output id="synthAttackValue">10 ms</output></div></div><div class="synth-control"><label for="synthDecay" data-i18n="decay">Decay</label><div class="synth-range"><input id="synthDecay" data-synth-range="decay" type="range" min="0.001" max="3" step="0.001"><output id="synthDecayValue">280 ms</output></div></div><div class="synth-control"><label for="synthSustain" data-i18n="sustainLevel">Sustain</label><div class="synth-range"><input id="synthSustain" data-synth-range="sustainLevel" type="range" min="0" max="1" step="0.01"><output id="synthSustainValue">68%</output></div></div><div class="synth-control"><label for="synthRelease" data-i18n="release">Release</label><div class="synth-range"><input id="synthRelease" data-synth-range="release" type="range" min="0.08" max="3" step="0.01"><output id="synthReleaseValue">420 ms</output></div></div></div>
+            <div class="panel synth-group synth-group-wide"><div class="panel-head"><div><span class="panel-kicker" data-i18n="modulation">MODULATION</span><h3 data-i18n="lfoRate">LFO rate</h3></div></div><div class="synth-control"><label for="synthLfoRate" data-i18n="lfoRate">LFO rate</label><div class="synth-range"><input id="synthLfoRate" data-synth-range="lfoRate" type="range" min="0.05" max="12" step="0.05"><output id="synthLfoRateValue">5.20 Hz</output></div></div><div class="synth-control"><label for="synthLfoDepth" data-i18n="lfoDepth">Pitch depth</label><div class="synth-range"><input id="synthLfoDepth" data-synth-range="lfoDepth" type="range" min="0" max="60" step="1"><output id="synthLfoDepthValue">3 ct</output></div></div><p class="synth-hint" data-i18n="synthHint">The custom patch uses two oscillators, filtered noise, a low-pass filter, ADSR, and pitch LFO within the same 16-voice ceiling.</p></div>
+          </div>
+          <details class="panel sampler-panel collapsible-panel"><summary class="panel-head"><div><span class="panel-kicker" data-i18n="sampler">SAMPLER</span><h3 data-i18n="samplerTitle">Sample keyboard</h3></div><div class="mode-chip" id="samplerStatusChip" data-i18n="samplerNoFile">No sample loaded</div></summary><p class="sampler-lead" data-i18n="samplerLead">Import one audio file and divide it across the calculator keys for quick one-shot playback.</p><div class="sampler-toolbar"><input id="samplerFileInput" type="file" accept="audio/*,.wav,.mp3,.ogg,.flac" hidden><button class="button" id="samplerChooseButton" type="button" data-i18n="samplerChoose">Choose audio</button><div class="toggle-line"><label for="samplerEnabled" data-i18n="samplerEnable">Sample mode</label><input id="samplerEnabled" type="checkbox"><span class="toggle-ui"></span></div><div class="option-field"><label for="samplerSliceCount" data-i18n="samplerSliceCount">Slice count</label><select id="samplerSliceCount"><option value="2">2</option><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option><option value="12">12</option></select></div><div class="sampler-range"><label for="samplerStart" data-i18n="samplerStart">Start</label><input id="samplerStart" type="range" min="0" max="0.9" step="0.01" value="0"><output id="samplerStartValue">0%</output></div><div class="sampler-range"><label for="samplerEnd" data-i18n="samplerEnd">End</label><input id="samplerEnd" type="range" min="0.1" max="1" step="0.01" value="1"><output id="samplerEndValue">100%</output></div><div class="sampler-range"><label for="samplerSpeed" data-i18n="samplerSpeed">Speed</label><input id="samplerSpeed" type="range" min="0.5" max="2" step="0.01" value="1"><output id="samplerSpeedValue">1.00x</output></div></div><div class="sampler-pad-grid" id="samplerPadGrid"></div><p class="sampler-hint muted" data-i18n="samplerHint">Use the calculator number keys 1-9, 0, ., and SIN. Samples are kept in memory for this session and do not touch the calculator firmware.</p><div class="converter-status" id="samplerStatus" data-i18n="samplerNoFile">No sample loaded</div></details>
+        </section>
+
+        <section class="page" id="page-groove">
+          <div class="page-heading"><div><div class="eyebrow" data-i18n="groove">GROOVE</div><h2 data-i18n="grooveTitle">Drum machine + arpeggiator</h2><p data-i18n="grooveLead">Build a loop with the calculator as the controller: drums provide the pulse and the arpeggiator turns held notes into a pattern.</p></div><div class="mode-chip" id="grooveTransportChip" data-i18n="grooveReady">Ready</div></div>
+          <div class="panel groove-transport">
+            <div class="groove-transport-controls"><button class="button primary" id="groovePlayButton" type="button" data-i18n="groovePlay">Play groove</button><button class="button ghost" id="grooveClearButton" type="button" data-i18n="grooveClear">Clear pattern</button><button class="button ghost" id="grooveRandomButton" type="button" data-i18n="grooveRandom">Randomize</button></div>
+            <div class="groove-transport-field"><label for="grooveBpmRange" data-i18n="grooveBpm">Groove BPM</label><div class="groove-bpm-control"><input id="grooveBpmRange" type="range" min="40" max="240" step="5" value="120"><output id="grooveBpmValue">120</output></div></div>
+            <div class="option-field"><label for="grooveStepsSelect" data-i18n="grooveSteps">Steps</label><select id="grooveStepsSelect"><option value="16" data-i18n="grooveSixteen">16 steps</option><option value="32" data-i18n="grooveThirtyTwo">32 steps</option></select></div>
+            <div class="option-field"><label for="grooveResolutionSelect" data-i18n="grooveResolution">Grid</label><select id="grooveResolutionSelect"><option value="8" data-i18n="grooveEighth">1/8</option><option value="16" selected data-i18n="grooveSixteenth">1/16</option></select></div>
+          </div>
+          <div class="panel drum-panel"><div class="panel-head"><div><span class="panel-kicker" data-i18n="drumMachine">DRUM MACHINE</span><h3 data-i18n="drumMachineTitle">Step rhythm</h3></div><div class="panel-readout" id="groovePatternReadout">16 steps</div></div><p class="groove-lead" data-i18n="drumMachineLead">Click a lane to add a hit. The pattern is saved locally and can run beside live playing.</p><div class="drum-grid-scroll"><div class="drum-grid" id="drumGrid"></div></div></div>
+          <div class="panel looper-panel"><div class="panel-head"><div><span class="panel-kicker" data-i18n="looper">LOOPER</span><h3 data-i18n="looperTitle">Layered loop</h3></div><div class="mode-chip" id="looperStatusChip" data-i18n="grooveReady">Ready</div></div><p class="groove-lead" data-i18n="looperLead">Record a fixed-length base layer, then add more layers one cycle at a time. Loop playback does not capture itself.</p><div class="looper-toolbar"><div class="option-field"><label for="looperBarsSelect" data-i18n="looperBars">Bars</label><select id="looperBarsSelect"><option value="1">1</option><option value="2">2</option><option value="4" selected>4</option><option value="8">8</option></select></div><div class="looper-actions"><button class="button primary" id="looperRecordButton" type="button" data-i18n="looperRecordBase">Record base</button><button class="button ghost" id="looperStopButton" type="button" data-i18n="looperStop">Stop looper</button><button class="button ghost" id="looperClearButton" type="button" data-i18n="looperClear">Clear layers</button></div><div class="panel-readout looper-position" id="looperPositionReadout">0:00 / 4 bars</div></div><div class="looper-progress"><div class="lesson-progress"><i id="looperProgressBar"></i></div><span id="looperProgressText">Idle</span></div><div class="looper-layer-list" id="looperLayerList"><div class="empty-state" data-i18n="looperNoLayers">No layers yet.</div></div></div>
+          <div class="groove-bottom-grid">
+            <div class="panel arp-panel"><div class="panel-head"><div><span class="panel-kicker" data-i18n="arpTitle">ARPEGGIATOR</span><h3 data-i18n="arpTitle">Arpeggiator</h3></div><div class="mode-chip" id="arpModeChip" data-i18n="arpOff">Off</div></div><p class="groove-lead" data-i18n="arpLead">Hold one or more calculator notes. The desktop engine cycles through them while you keep the keys down.</p><div class="toggle-line arp-toggle"><label for="arpEnabled" data-i18n="arpEnable">Arpeggiator</label><input id="arpEnabled" type="checkbox"><span class="toggle-ui"></span></div><div class="arp-controls"><div class="option-field"><label for="arpPatternSelect" data-i18n="arpPattern">Pattern</label><select id="arpPatternSelect"><option value="up" data-i18n="arpUp">Up</option><option value="down" data-i18n="arpDown">Down</option><option value="updown" data-i18n="arpUpDown">Up / down</option><option value="random" data-i18n="arpRandom">Random</option></select></div><div class="option-field"><label for="arpRateSelect" data-i18n="arpRate">Rate</label><select id="arpRateSelect"><option value="4">1/4</option><option value="8" selected>1/8</option><option value="16">1/16</option><option value="32">1/32</option></select></div><div class="option-field"><label for="arpOctavesSelect" data-i18n="arpOctaves">Octaves</label><select id="arpOctavesSelect"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div><div class="option-field arp-gate-field"><label for="arpGateRange" data-i18n="arpGate">Gate</label><div class="groove-bpm-control"><input id="arpGateRange" type="range" min="35" max="100" step="1" value="72"><output id="arpGateValue">72%</output></div></div></div><p class="synth-hint" data-i18n="arpHint">The arpeggiator uses the same tone, transpose, velocity, and 16-voice ceiling as live notes. Disable it to return to direct playing.</p></div>
+            <details class="panel chord-assist-panel collapsible-panel"><summary class="panel-head"><div><span class="panel-kicker" data-i18n="chordAssist">CHORD ASSIST</span><h3 data-i18n="chordAssistTitle">Chord accompaniment</h3></div><div class="mode-chip" id="chordAssistModeChip" data-i18n="chordOff">Off</div></summary><p class="groove-lead" data-i18n="chordAssistLead">Hold one calculator note to add a chord and a timed bass pulse.</p><div class="toggle-line"><label for="chordAssistEnabled" data-i18n="chordAssistEnable">Chord assistant</label><input id="chordAssistEnabled" type="checkbox"><span class="toggle-ui"></span></div><div class="arp-controls"><div class="option-field"><label for="chordAssistType" data-i18n="chordType">Chord type</label><select id="chordAssistType"><option value="triad" data-i18n="chordTriad">Major triad</option><option value="minor" data-i18n="chordMinor">Minor triad</option><option value="seventh" data-i18n="chordSeventh">Seventh</option><option value="sus4" data-i18n="chordSus4">Suspended 4</option></select></div><div class="toggle-line"><label for="chordAssistBass" data-i18n="chordBass">Auto bass</label><input id="chordAssistBass" type="checkbox"><span class="toggle-ui"></span></div><div class="toggle-line"><label for="chordAssistPulse" data-i18n="chordPulse">Bass pulse</label><input id="chordAssistPulse" type="checkbox"><span class="toggle-ui"></span></div></div><p class="synth-hint" data-i18n="chordHint">The assistant uses the current tone and stays within the desktop 16-voice ceiling. Turn it off to return to direct notes.</p></details>
+            <div class="panel groove-info"><span class="panel-kicker" data-i18n="pattern">PATTERN</span><h3 data-i18n="grooveTransport">Groove transport</h3><p class="groove-info-copy" data-i18n="grooveLead">Build a loop with the calculator as the controller: drums provide the pulse and the arpeggiator turns held notes into a pattern.</p><div class="groove-key-hints"><span><b data-i18n="grooveCalcKeys">Calculator keys</b><em data-i18n="grooveCalcKeysHint">Drums and live notes</em></span><span><b data-i18n="grooveShift">SHIFT</b><em data-i18n="grooveShiftHint">Existing tone and transport controls</em></span><span><b data-i18n="grooveLocal">Groove</b><em data-i18n="grooveLocalHint">Tempo and pattern stay local to this desktop app</em></span></div></div>
+          </div>
+        </section>
+
+        <footer class="status-footer"><span class="status-dot" id="footerDot"></span><span id="footerStatus">Ready</span><span class="footer-separator">|</span><span id="footerHint">Connect the calculator by USB serial to begin.</span></footer>
+      </main>
+    </div>
+  </div>
+  <script src="keymap.js"></script>
+  <script src="midi-writer.js"></script>
+  <script src="audio-envelope.js"></script>
+  <script src="groove-engine.js"></script>
+  <script src="challenge-engine.js"></script>
+  <script src="chord-engine.js"></script>
+  <script src="sampler-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
