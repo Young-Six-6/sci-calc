@@ -29,7 +29,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 
 ## 安装与更新
 
-当前主固件版本为 1.21。
+当前主固件版本为 1.22。可在 `Settings > Power saving` 中分别设置自动息屏休眠和自动关闭。息屏后按任意键唤醒；自动关闭后需复位或重新开关电源。
 
 如需通过 USB 完整安装，请将 [`sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) 刷写到地址 `0x0`。
 
@@ -79,6 +79,8 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 - [音乐播放器](games/MusicPlayer/README_CH.md)
 - [高级音乐键盘](games/MusicKeyboard/README_CH.md)
 - [Falling Keys 下落式音游](games/FallingKeys/README_CH.md)
+- [Falling Keys Desktop 桌面下落音游](desktop/FallingKeysDesktop/README_CH.md)
+- [高级音乐键盘桌面版](desktop/MusicKeyboardDesktop/README_CH.md)
 - [迷宫](games/Maze/README_CH.md)
 - [Super-CHIP](games/SuperChip/README_CH.md)
 - [Wi-Fi SD 管理器](games/SDManager/README_CH.md)
@@ -94,6 +96,7 @@ OLED 与 SD 卡共用 SPI 的 MOSI 和时钟线，并分别使用独立的 CS �
 - [故障排查](docs/troubleshooting.md)
 - [开发环境](docs/environment_setup.md)
 - [代码结构](docs/code_structure.md)
+- [通用简谱读法](docs/numbered_notation_CH.md)
 
 ## 编译
 

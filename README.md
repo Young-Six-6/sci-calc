@@ -29,7 +29,7 @@ The OLED and SD card share the SPI MOSI and clock lines. Each device keeps its o
 
 ## Install or update
 
-The current main firmware is version 1.21.
+The current main firmware is version 1.22. In `Settings > Power saving`, optional display sleep and automatic power off can be configured independently. Display sleep wakes on any key; automatic power off requires reset or a power cycle to wake.
 
 For a complete USB installation, flash [`sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin`](sci_calc_code/bin/sci-calc-full-1x.xx-min-spiffs.bin) at address `0x0`.
 
@@ -79,6 +79,8 @@ Additional applications can be added through explicit `/apps/*.app` manifests. T
 - [Music Player](games/MusicPlayer/README.md)
 - [Music Keyboard](games/MusicKeyboard/README.md)
 - [Falling Keys](games/FallingKeys/README.md)
+- [Falling Keys Desktop](desktop/FallingKeysDesktop/README.md)
+- [Music Keyboard Desktop](desktop/MusicKeyboardDesktop/README.md)
 - [Maze](games/Maze/README.md)
 - [Super-CHIP](games/SuperChip/README.md)
 - [Wi-Fi SD Manager](games/SDManager/README.md)
@@ -94,6 +96,7 @@ Additional applications can be added through explicit `/apps/*.app` manifests. T
 - [Troubleshooting](docs/troubleshooting.md)
 - [Development environment](docs/environment_setup.md)
 - [Code structure](docs/code_structure.md)
+- [Reading Numbered Musical Notation](docs/numbered_notation.md)
 
 ## Build
 
