@@ -64,7 +64,7 @@ In the calculator editor, use `Shift+4` and `Shift+6` to move the text cursor. I
 `Programs` is organized into five categories:
 
 - `Calculation`: Classic Calc and Graph Calc
-- `Games`: 2048, Maze, Falling Keys, Super-CHIP, Chess, Spacetrash, Snake, Tetris, Catacombs of the Damned, and Squario
+- `Games`: 2048, Maze, Super-CHIP, Chess, Spacetrash, Snake, Tetris, Catacombs of the Damned, and Squario
 - `Music`: Music Player and Music Keyboard
 - `Tools`: SD Manager, USB Display, and USB Key Share
 - `Other`: Wifi Rickroll and applications discovered from SD manifests
@@ -78,7 +78,6 @@ Additional applications can be added through explicit `/apps/*.app` manifests. T
 - [Graph Calculator](games/GraphCalculator/README.md)
 - [Music Player](games/MusicPlayer/README.md)
 - [Music Keyboard](games/MusicKeyboard/README.md)
-- [Falling Keys](games/FallingKeys/README.md)
 - [Falling Keys Desktop](desktop/FallingKeysDesktop/README.md)
 - [Music Keyboard Desktop](desktop/MusicKeyboardDesktop/README.md)
 - [Maze](games/Maze/README.md)

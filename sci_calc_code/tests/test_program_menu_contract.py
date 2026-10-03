@@ -60,7 +60,6 @@ class ProgramMenuContractTests(unittest.TestCase):
             "/serialdisplay.bin",
             "/serialkeyboard.bin",
             "/maze.bin",
-            "/fallingkeys.bin",
             "/chip8.bin",
             "/chess.bin",
             "/spacetrash.bin",

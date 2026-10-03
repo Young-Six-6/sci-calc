@@ -86,9 +86,6 @@ Kept sliding menus inside the main panel and refreshed the sidebar during transi
 v1.17
 Added a standalone polyphonic music keyboard with visualizers and MIDI recording.
 
-v1.18
-Added a standalone falling-tile rhythm game with built-in and SD-card charts.
-
 v1.19
 Added a standalone seven-segment classic calculator for everyday and accounting work.
 

@@ -203,7 +203,6 @@ class AppDiscoveryContractTests(unittest.TestCase):
         for name, firmware in (
             ("2048", "/2048.bin"),
             ("Classic Calc", "/classiccalc.bin"),
-            ("Falling Keys", "/fallingkeys.bin"),
             ("Music Keyboard", "/musickeyboard.bin"),
             ("USB Key Share", "/serialkeyboard.bin"),
         ):
